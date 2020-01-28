@@ -1,0 +1,21 @@
+Source: mica-search-es
+Section: devel
+Priority: extra
+Maintainer: OBiBa <info@obiba.org>
+Build-Depends: debhelper (>= 7.0.15)
+Standards-Version: 3.8.4
+Homepage: http://www.obiba.org
+
+Package: mica-search-es
+Architecture: all
+Pre-Depends:
+Depends: mica2 (>= 3.2)
+Description: OBiBa Mica Search ES
+ Mica Search ES installs a Mica search plugin based on Elasticsearch 2.4.x.
+ .
+ OBiBa is an international software development project committed to building a
+ full suite of open source software for biobanks. It is comprised of several
+ independent and self-funded teams around the world, each of which is producing
+ stand-alone applications that support particular biobank activities. The
+ applications can be customized and integrated to create a complete biobank
+ information management system.

@@ -1,0 +1,97 @@
+<!--
+  ~ Copyright (c) 2018 OBiBa. All rights reserved.
+  ~
+  ~ This program and the accompanying materials
+  ~ are made available under the terms of the GNU Public License v3.0.
+  ~
+  ~ You should have received a copy of the GNU General Public License
+  ~ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  -->
+
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.0.0 http://maven.apache.org/xsd/assembly-2.0.0.xsd">
+  <id>dist</id>
+  <formats>
+    <format>zip</format>
+  </formats>
+  <fileSets>
+    <fileSet>
+      <directory>src/main/conf</directory>
+      <outputDirectory>.</outputDirectory>
+      <excludes>
+        <exclude>LICENSE.txt</exclude>
+        <exclude>README.md</exclude>
+        <exclude>plugin.properties</exclude>
+        <exclude>site.properties</exclude>
+      </excludes>
+    </fileSet>
+    <fileSet>
+      <directory>target</directory>
+      <outputDirectory>.</outputDirectory>
+      <includes>
+        <include>LICENSE.txt</include>
+        <include>README.md</include>
+        <include>plugin.properties</include>
+        <include>site.properties</include>
+      </includes>
+    </fileSet>
+  </fileSets>
+  <dependencySets>
+    <dependencySet>
+      <outputDirectory>/lib</outputDirectory>
+      <useProjectArtifact>true</useProjectArtifact>
+      <unpack>false</unpack>
+      <scope>runtime</scope>
+      <includes>
+        <include>
+          org.obiba.es:*
+        </include>
+        <include>
+          org.elasticsearch:*
+        </include>
+        <include>
+          org.elasticsearch.client:*
+        </include>
+        <include>
+          org.elasticsearch.plugin:*
+        </include>
+        <include>
+          org.apache.lucene:*
+        </include>
+        <include>
+          org.apache.logging.log4j:*
+        </include>
+        <include>
+          org.apache.httpcomponents:*
+        </include>
+        <include>
+          org.yaml:*
+        </include>
+        <include>
+          com.fasterxml.jackson.core:*
+        </include>
+        <include>
+          com.fasterxml.jackson.dataformat:*
+        </include>
+        <include>
+          com.twitter:*
+        </include>
+        <include>
+          com.tdunning:*
+        </include>
+        <include>
+          com.carrotsearch:*
+        </include>
+        <include>
+          io.netty:*
+        </include>
+        <include>
+          com.ning:*
+        </include>
+        <include>
+          net.java.dev.jna:*
+        </include>
+      </includes>
+    </dependencySet>
+  </dependencySets>
+</assembly>

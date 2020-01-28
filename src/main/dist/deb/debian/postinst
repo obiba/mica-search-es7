@@ -1,0 +1,53 @@
+#!/bin/sh
+# postinst script for mica-search-es
+#
+# see: dh_installdeb(1)
+
+set -e
+
+. /usr/share/debconf/confmodule
+
+case "$1" in
+    configure)
+
+      if [ -f /etc/default/mica2 ]; then
+        . /etc/default/mica2
+        mkdir -p $MICA_HOME/plugins
+        if [ -d "$MICA_HOME"/plugins ]; then
+          OLD_PLUGIN=$(ls -t "$MICA_HOME"/plugins/ | grep mica-search-es | head -1)
+
+          cp -r /usr/share/mica-search-es* $MICA_HOME/plugins
+
+          if [ ! -z "$OLD_PLUGIN" ] && [ -f $MICA_HOME/plugins/$OLD_PLUGIN/site.properties ]; then
+            echo "Copying $OLD_PLUGIN/site.properties to new installation."
+            NEW_PLUGIN=$(ls -t $MICA_HOME/plugins/ | grep mica-search-es | head -1)
+            cp $MICA_HOME/plugins/$OLD_PLUGIN/site.properties $MICA_HOME/plugins/$NEW_PLUGIN/
+          fi
+
+          if [ ! -z "$OLD_PLUGIN" ] && [ -f $MICA_HOME/plugins/$OLD_PLUGIN/elasticsearch.yml ]; then
+            echo "Copying $OLD_PLUGIN/elasticsearch.yml to new installation."
+            NEW_PLUGIN=$(ls -t $MICA_HOME/plugins/ | grep mica-search-es | head -1)
+            cp $MICA_HOME/plugins/$OLD_PLUGIN/elasticsearch.yml $MICA_HOME/plugins/$NEW_PLUGIN/
+          fi
+
+          chown -R mica:adm $MICA_HOME/plugins
+          echo '***'
+          echo '*** IMPORTANT: Mica Search ES plugin has been installed, you must restart Mica server.'
+          echo '***'
+        fi
+      fi
+
+    ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

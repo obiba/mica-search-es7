@@ -1,0 +1,33 @@
+http.enabled: false
+script:
+    inline: on
+    indexed: on
+node.local: true
+discovery.zen.ping.multicast.enabled: false
+index:
+    max_ngram_diff: 18
+    max_result_window: 1000000
+    analysis:
+        analyzer:
+            mica_index_analyzer:
+               type: custom
+               char_filter: [html_strip]
+               tokenizer: mica_char_group_tokenizer
+               filter: [lowercase,mica_asciifolding_filter,mica_nGram_filter]
+            mica_search_analyzer:
+               type: custom
+               char_filter: [html_strip]
+               tokenizer: mica_char_group_tokenizer
+               filter: [lowercase,mica_asciifolding_filter]
+        filter:
+            mica_asciifolding_filter:
+                type: asciifolding
+                preserve_original: true
+            mica_nGram_filter:
+                type: ngram
+                min_gram: 2
+                max_gram: 20
+        tokenizer:
+            mica_char_group_tokenizer:
+                type: char_group
+                tokenize_on_chars: ["whitespace", "-", "_"]
