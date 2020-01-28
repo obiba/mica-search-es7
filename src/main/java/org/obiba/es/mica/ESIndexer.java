@@ -184,11 +184,7 @@ public class ESIndexer implements Indexer {
 
   @Override
   public void delete(String indexName, String[] types, Map.Entry<String, String> termQuery) {
-    try {
-      if (!getClient().indices().exists(new GetIndexRequest(indexName), RequestOptions.DEFAULT)) return;
-    } catch (IOException e) {
-      log.error("Failed to find index {} - {}", indexName, e);
-    }
+    if (!hasIndex(indexName)) return;
 
     QueryBuilder query = QueryBuilders.termQuery(termQuery.getKey(), termQuery.getValue());
 
@@ -272,10 +268,6 @@ public class ESIndexer implements Indexer {
     return request;
   }
 
-  private String getType(Indexable indexable) {
-    return indexable.getMappingName() == null ? indexable.getClassName() : indexable.getMappingName();
-  }
-
   private synchronized void createIndexIfNeeded(String indexName) {
     log.trace("Ensuring index existence for index {}", indexName);
     IndicesClient indicesAdmin = getClient().indices();
@@ -290,10 +282,10 @@ public class ESIndexer implements Indexer {
 
       try {
         indicesAdmin.create(new CreateIndexRequest(indexName).settings(settings), RequestOptions.DEFAULT);
+        esSearchService.getIndexConfigurationListeners().forEach(listener -> listener.onIndexCreated(esSearchService, indexName));
       } catch (IOException e) {
         log.error("Failed to create index index {} - {}", indexName, e);
       }
-      esSearchService.getIndexConfigurationListeners().forEach(listener -> listener.onIndexCreated(esSearchService, indexName));
     }
   }
 

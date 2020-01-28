@@ -296,23 +296,25 @@ public class ESSearcher implements Searcher {
 
     log.debug("Request /{}/{}", indexName, type);
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
-    SearchResponse response = null;
+    List<String> names = Lists.newArrayList();
+
     try {
-      response = getClient().search(new SearchRequest(indexName).source(sourceBuilder), RequestOptions.DEFAULT);
+      SearchResponse response = getClient().search(new SearchRequest(indexName).source(sourceBuilder), RequestOptions.DEFAULT);
+      response.getHits().forEach(hit -> {
+          String value = ESHitSourceMapHelper.flattenMap(hit).get(fieldName).toLowerCase();
+          names.add(Joiner.on(" ").join(Splitter.on(" ").trimResults().splitToList(value).stream()
+            .filter(str -> !str.contains("[") && !str.contains("(") && !str.contains("{") && !str.contains("]") && !str.contains(")") && !str.contains("}"))
+            .map(str -> str.replace(":", "").replace(",", ""))
+            .filter(str -> !str.isEmpty()).collect(Collectors.toList())));
+        }
+      );
+
     } catch (IOException e) {
       log.error("Failed to suggest {} - {}", indexName, e);
     }
     log.debug("Response /{}/{}", indexName, type);
 
-    List<String> names = Lists.newArrayList();
-    response.getHits().forEach(hit -> {
-        String value = ESHitSourceMapHelper.flattenMap(hit).get(fieldName).toLowerCase();
-        names.add(Joiner.on(" ").join(Splitter.on(" ").trimResults().splitToList(value).stream()
-          .filter(str -> !str.contains("[") && !str.contains("(") && !str.contains("{") && !str.contains("]") && !str.contains(")") && !str.contains("}"))
-          .map(str -> str.replace(":", "").replace(",", ""))
-          .filter(str -> !str.isEmpty()).collect(Collectors.toList())));
-      }
-    );
+
     return names;
   }
 
@@ -333,7 +335,7 @@ public class ESSearcher implements Searcher {
     }
     log.debug("Response /{}/{}", indexName, type);
 
-    if (response.getHits().getTotalHits().value == 0) return null;
+    if (response == null || response.getHits().getTotalHits().value == 0) return null;
     return new ByteArrayInputStream(response.getHits().getAt(0).getSourceAsString().getBytes());
   }
 
@@ -356,7 +358,7 @@ public class ESSearcher implements Searcher {
     }
     log.debug("Response /{}/{}", indexName, type);
 
-    if (response.getHits().getTotalHits().value == 0) return null;
+    if (response == null || response.getHits().getTotalHits().value == 0) return null;
     return new ByteArrayInputStream(response.getHits().getAt(0).getSourceAsString().getBytes());
   }
 

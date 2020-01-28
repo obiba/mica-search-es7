@@ -89,7 +89,7 @@ public class AggregationParser {
     Boolean localized = Boolean.valueOf(properties.getProperty(key + AggregationHelper.LOCALIZED));
     String aliasProperty = properties.getProperty(key + AggregationHelper.ALIAS);
     String typeProperty = properties.getProperty(key + AggregationHelper.TYPE);
-    List<String> types = null == typeProperty ? Arrays.asList(AggregationHelper.AGG_TERMS) : Arrays.asList(typeProperty.split(","));
+    List<String> types = null == typeProperty ? Arrays.asList(AggregationHelper.AGG_STERMS) : Arrays.asList(typeProperty.split(","));
     List<String> aliases = null == aliasProperty ? Arrays.asList("") : Arrays.asList(aliasProperty.split(","));
 
     IntStream.range(0, types.size()).forEach(i -> {
@@ -98,13 +98,13 @@ public class AggregationParser {
         log.trace("Building aggregation '{}' of type '{}'", entry.getKey(), aggType);
 
         switch (aggType) {
-          case AggregationHelper.AGG_TERMS:
+          case AggregationHelper.AGG_STERMS:
             TermsAggregationBuilder termBuilder = AggregationBuilders.terms(entry.getKey()).field(entry.getValue());
             if (minDocCount > -1) termBuilder.minDocCount(minDocCount);
             if (subAggregations != null && subAggregations.containsKey(entry.getValue())) {
               subAggregations.get(entry.getValue()).forEach(termBuilder::subAggregation);
             }
-            termsBuilders.add(termBuilder.order(BucketOrder.key(true)).size(Short.MAX_VALUE)); // .size(0) TODO: is there a way to set a size that is == to max terms and not an arbitrary number
+            termsBuilders.add(termBuilder.order(BucketOrder.key(true)).size(Short.MAX_VALUE));
             break;
           case AggregationHelper.AGG_STATS:
             termsBuilders.add(AggregationBuilders.stats(entry.getKey()).field(entry.getValue()));
@@ -168,6 +168,6 @@ public class AggregationParser {
   private String getAggregationType(String type, Boolean localized) {
     return !localized && !Strings.isNullOrEmpty(type) && type.matches(String.format("^(%s|%s|%s)$", AggregationHelper.AGG_STATS, AggregationHelper.AGG_TERMS, AggregationHelper.AGG_RANGE))
         ? type
-        : AggregationHelper.AGG_TERMS;
+        : AggregationHelper.AGG_STERMS;
   }
 }

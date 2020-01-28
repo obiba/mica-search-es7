@@ -82,17 +82,10 @@ public class VariableIndexConfiguration extends AbstractIndexConfiguration {
           .forEach(field -> createLocalizedMappingWithAnalyzers(mapping, field));
       mapping.endObject(); // properties
       mapping.endObject(); // attributes
-    } catch (Exception e) {
-      // ignore
+    } catch (Exception ignore) {
     }
 
     mapping.endObject(); // properties
-
-//    // parent
-//    if (Indexer.HARMONIZED_VARIABLE_TYPE.equals(type)) {
-//      mapping.startObject("_parent").field("type", Indexer.VARIABLE_TYPE).endObject();
-//    }
-
     mapping.endObject();
     return mapping;
   }

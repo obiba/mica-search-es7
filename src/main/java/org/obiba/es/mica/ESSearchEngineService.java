@@ -47,7 +47,7 @@ import static java.util.stream.Collectors.toList;
 public class ESSearchEngineService implements SearchEngineService {
   private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-  private static final String ES_BRANCH = "2.4.x";
+  private static final String ES_BRANCH = "7.5.x";
 
   private static final String ES_CONFIG_FILE = "elasticsearch.yml";
 
@@ -260,7 +260,7 @@ public class ESSearchEngineService implements SearchEngineService {
       try {
         builder.loadFromPath(defaultSettings.toPath());
       } catch (IOException e) {
-        log.error("Failed to get settings {}", e);
+        log.error("Failed to load default settings {}", e);
       }
     }
 
