@@ -203,7 +203,7 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
           return "long";
         case "decimal":
           return "double";
-        case "text":
+        case "string":
           return "text";
       }
     }
