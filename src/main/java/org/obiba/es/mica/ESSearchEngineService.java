@@ -17,6 +17,7 @@ import com.google.common.collect.Sets;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.node.Node;
@@ -40,6 +41,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
@@ -264,8 +266,13 @@ public class ESSearchEngineService implements SearchEngineService {
       }
     }
 
-    builder.loadFromSource(properties.getProperty("settings", ""), XContentType.YAML)
-        .put("cluster.name", getClusterName());
+    String settings = properties.getProperty("settings", "");
+    if (!Strings.isNullOrEmpty(settings) && settings.indexOf(':') != -1) {
+      builder.loadFromSource(settings, XContentType.YAML);
+    }
+
+    builder.put("cluster.name", getClusterName());
+
     return builder;
   }
 }
