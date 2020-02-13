@@ -73,6 +73,7 @@ public class VariableIndexConfiguration extends AbstractIndexConfiguration {
     createMappingWithoutAnalyzer(mapping, "variableType");
     createMappingWithoutAnalyzer(mapping, "valueType");
     createMappingWithoutAnalyzer(mapping, "nature");
+    createMappingWithoutAnalyzer(mapping, "sets");
 
     // attributes from taxonomies
     try {
