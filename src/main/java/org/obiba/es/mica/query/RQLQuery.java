@@ -638,9 +638,12 @@ public class RQLQuery implements ESQuery {
             List<SortBuilder> sortBuilders = Lists.newArrayList();
             if (node.getArgumentsSize() >= 1) {
               for (int i = 0; i < node.getArgumentsSize(); i++) {
-                SortBuilder sortBuilder = processArgument(node.getArgument(i).toString());
-                ((FieldSortBuilder) sortBuilder).unmappedType("string");
-                ((FieldSortBuilder) sortBuilder).missing("_last");
+                String sortKey = node.getArgument(i).toString();
+                SortBuilder sortBuilder = processArgument(sortKey);
+                if (!"_score".equals(sortKey)) {
+                  ((FieldSortBuilder) sortBuilder).unmappedType("string");
+                  ((FieldSortBuilder) sortBuilder).missing("_last");
+                }
                 sortBuilders.add(sortBuilder);
               }
             }
