@@ -263,7 +263,7 @@ public class ESSearcher implements Searcher {
         .from(0)
         .size(0);
 
-    query.getAggregations().forEach(field -> sourceBuilder.aggregation(AggregationBuilders.terms(field).field(field).size(0)));
+    query.getAggregations().forEach(field -> sourceBuilder.aggregation(AggregationBuilders.terms(field).field(field).size(Short.MAX_VALUE)));
 
     log.debug("Request /{}/{}", indexName, type);
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
@@ -446,7 +446,7 @@ public class ESSearcher implements Searcher {
         .query(builder)
         .from(0) //
         .size(0)
-        .aggregation(AggregationBuilders.terms(field.replaceAll("\\.", "-")).field(field).size(0));
+        .aggregation(AggregationBuilders.terms(field.replaceAll("\\.", "-")).field(field).size(Short.MAX_VALUE));
 
     try {
       log.debug("Request /{}/{}: {}", indexName, type, sourceBuilder);
