@@ -334,6 +334,45 @@
     </plugins>
   </build>
 
+  <profiles>
+    <profile>
+      <!-- A profile for the builds performed by the continuous integration server -->
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>de.jutzig</groupId>
+            <artifactId>github-release-plugin</artifactId>
+            <version>${github-release-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>make-release</id>
+                <phase>deploy</phase>
+                <goals>
+                  <goal>release</goal>
+                </goals>
+                <configuration>
+                  <releaseName>${project.version}</releaseName>
+                  <tag>${project.version}</tag>
+                  <repositoryId>obiba/${project.name}</repositoryId>
+                  <artifact>donotuploadjar</artifact>
+                  <fileSets>
+                    <fileSet>
+                      <directory>${basedir}/target</directory>
+                      <includes>
+                        <include>*.zip</include>
+                      </includes>
+                    </fileSet>
+                  </fileSets>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
   <repositories>
     <repository>
       <id>obiba-releases</id>
