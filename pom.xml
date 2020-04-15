@@ -361,13 +361,6 @@
                       <directory>${basedir}/target</directory>
                       <includes>
                         <include>*.zip</include>
-                        <include>*.deb</include>
-                      </includes>
-                    </fileSet>
-                    <fileSet>
-                      <directory>${basedir}/target/rpm/${project.name}/RPMS/noarch</directory>
-                      <includes>
-                        <include>*.rpm</include>
                       </includes>
                     </fileSet>
                   </fileSets>
