@@ -268,7 +268,7 @@
         </executions>
       </plugin>
 
-      <plugin>SNAPSHOT
+      <plugin>
         <artifactId>maven-resources-plugin</artifactId>
         <version>${maven-resources-plugin.version}</version>
         <executions>
