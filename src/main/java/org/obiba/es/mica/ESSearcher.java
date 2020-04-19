@@ -19,6 +19,8 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.core.CountRequest;
+import org.elasticsearch.client.core.CountResponse;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.query.BoolQueryBuilder;
@@ -35,6 +37,7 @@ import org.elasticsearch.search.sort.SortOrder;
 import org.obiba.es.mica.query.AndQuery;
 import org.obiba.es.mica.query.RQLJoinQuery;
 import org.obiba.es.mica.query.RQLQuery;
+import org.obiba.es.mica.results.ESResponseCountResults;
 import org.obiba.es.mica.results.ESResponseDocumentResults;
 import org.obiba.es.mica.support.AggregationParser;
 import org.obiba.es.mica.support.ESHitSourceMapHelper;
@@ -253,29 +256,23 @@ public class ESSearcher implements Searcher {
   }
 
   @Override
-  public DocumentResults count(String indexName, String type, String rql, IdFilter idFilter) {
+  public ESResponseCountResults count(String indexName, String type, String rql, IdFilter idFilter) {
     QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
     RQLQuery query = new RQLQuery(rql);
     QueryBuilder queryBuilder = query.isEmpty() || !query.hasQueryBuilder() ? QueryBuilders.matchAllQuery() : query.getQueryBuilder();
-
-    SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
-        .query(filter == null ? queryBuilder : QueryBuilders.boolQuery().must(queryBuilder).must(filter)) //
-        .from(0)
-        .size(0);
-
-    query.getAggregations().forEach(field -> sourceBuilder.aggregation(AggregationBuilders.terms(field).field(field).size(Short.MAX_VALUE)));
+    QueryBuilder countQueryBuilder = filter == null ? queryBuilder : QueryBuilders.boolQuery().must(queryBuilder).must(filter);
 
     log.debug("Request /{}/{}", indexName, type);
-    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
-    SearchResponse response = null;
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, countQueryBuilder.toString());
+    CountResponse response = null;
     try {
-      response = getClient().search(new SearchRequest(indexName).source(sourceBuilder), RequestOptions.DEFAULT);
+      response = getClient().count(new CountRequest(indexName).query(countQueryBuilder), RequestOptions.DEFAULT);
     } catch (IOException e) {
       log.error("Failed to count {} - {}", indexName, e);
     }
     log.debug("Response /{}/{}", indexName, type);
 
-    return new ESResponseDocumentResults(response);
+    return new ESResponseCountResults(response);
   }
 
   @Override
