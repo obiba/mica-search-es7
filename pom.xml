@@ -12,7 +12,7 @@
   <groupId>org.obiba.es</groupId>
   <artifactId>mica-search-es7</artifactId>
   <packaging>jar</packaging>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.1-SNAPSHOT</version>
   <name>mica-search-es7</name>
   <url>http://obiba.org</url>
 
