@@ -256,9 +256,15 @@ public class ESSearcher implements Searcher {
   }
 
   @Override
-  public ESResponseCountResults count(String indexName, String type, String rql, IdFilter idFilter) {
+  public DocumentResults count(String indexName, String type, String rql, IdFilter idFilter) {
     QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
     RQLQuery query = new RQLQuery(rql);
+
+    List<String> aggregations = query.getAggregations();
+    if (query.getAggregations() !=  null && !aggregations.isEmpty()) {
+      return countWithAggregations(indexName, type, rql, idFilter);
+    }
+
     QueryBuilder queryBuilder = query.isEmpty() || !query.hasQueryBuilder() ? QueryBuilders.matchAllQuery() : query.getQueryBuilder();
     QueryBuilder countQueryBuilder = filter == null ? queryBuilder : QueryBuilders.boolQuery().must(queryBuilder).must(filter);
 
@@ -273,6 +279,40 @@ public class ESSearcher implements Searcher {
     log.debug("Response /{}/{}", indexName, type);
 
     return new ESResponseCountResults(response);
+  }
+
+  /**
+   * Client code does not require a total count but a count per aggregation.
+   *
+   * @param indexName
+   * @param type
+   * @param rql
+   * @param idFilter
+   * @return
+   */
+  private DocumentResults countWithAggregations(String indexName, String type, String rql, IdFilter idFilter) {
+    QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
+    RQLQuery query = new RQLQuery(rql);
+    QueryBuilder queryBuilder = query.isEmpty() || !query.hasQueryBuilder() ? QueryBuilders.matchAllQuery() : query.getQueryBuilder();
+
+    SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
+      .query(filter == null ? queryBuilder : QueryBuilders.boolQuery().must(queryBuilder).must(filter)) //
+      .from(0)
+      .size(0);
+
+    query.getAggregations().forEach(field -> sourceBuilder.aggregation(AggregationBuilders.terms(field).field(field).size(Short.MAX_VALUE)));
+
+    log.debug("Request /{}/{}", indexName, type);
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
+    SearchResponse response = null;
+    try {
+      response = getClient().search(new SearchRequest(indexName).source(sourceBuilder), RequestOptions.DEFAULT);
+    } catch (IOException e) {
+      log.error("Failed to count {} - {}", indexName, e);
+    }
+    log.debug("Response /{}/{}", indexName, type);
+
+    return new ESResponseDocumentResults(response);
   }
 
   @Override
