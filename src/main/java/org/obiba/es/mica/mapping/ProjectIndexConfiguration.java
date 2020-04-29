@@ -46,7 +46,7 @@ public class ProjectIndexConfiguration extends AbstractIndexConfiguration {
   }
 
   private XContentBuilder createMappingProperties() throws IOException {
-    XContentBuilder mapping = XContentFactory.jsonBuilder().startObject().startObject(Indexer.PROJECT_TYPE);
+    XContentBuilder mapping = XContentFactory.jsonBuilder().startObject();
 
     // properties
     mapping.startObject("properties");
@@ -56,7 +56,7 @@ public class ProjectIndexConfiguration extends AbstractIndexConfiguration {
         .forEach(field -> createLocalizedMappingWithAnalyzers(mapping, field));
     mapping.endObject();
 
-    mapping.endObject().endObject();
+    mapping.endObject();
     return mapping;
   }
 
