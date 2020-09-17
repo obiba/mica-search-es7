@@ -47,10 +47,14 @@ public class ProjectIndexConfiguration extends AbstractIndexConfiguration {
 
   private XContentBuilder createMappingProperties() throws IOException {
     XContentBuilder mapping = XContentFactory.jsonBuilder().startObject();
+    startDynamicTemplate(mapping);
+    dynamicTemplateExcludeFieldFromSearch(mapping, "dataAccessRequestId", "dataAccessRequestId");
+    endDynamicTemplate(mapping);
 
     // properties
     mapping.startObject("properties");
     mapping.startObject("id").field("type", "keyword").endObject();
+    createMappingWithoutAnalyzer(mapping, "dataAccessRequestId");
     appendMembershipProperties(mapping);
     Stream.of(Indexer.PROJECT_LOCALIZED_ANALYZED_FIELDS)
         .forEach(field -> createLocalizedMappingWithAnalyzers(mapping, field));
