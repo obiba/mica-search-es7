@@ -27,7 +27,7 @@ import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.client.indices.GetMappingsRequest;
 import org.elasticsearch.client.indices.GetMappingsResponse;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.QueryBuilder;
@@ -232,8 +232,8 @@ public class ESIndexer implements Indexer {
   private ReadContext getContext(String indexName, String indexType) {
     try {
       GetMappingsResponse result = getClient().indices().getMapping(new GetMappingsRequest().indices(indexName), RequestOptions.DEFAULT);
-      Map<String, MappingMetaData> mappings = result.mappings();
-      MappingMetaData metaData = mappings.get(indexName);
+      Map<String, MappingMetadata> mappings = result.mappings();
+      MappingMetadata metaData = mappings.get(indexName);
       Object jsonContent = Configuration.defaultConfiguration().jsonProvider().parse(metaData.source().toString());
       return JsonPath.using(Configuration.defaultConfiguration().addOptions(Option.ALWAYS_RETURN_LIST)).parse(jsonContent);
 
