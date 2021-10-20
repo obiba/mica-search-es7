@@ -26,8 +26,8 @@
     <jna.version>4.1.0</jna.version>
     <junit.version>4.12</junit.version>
     <logback.version>1.1.3</logback.version>
-    <mica.version>3.9-SNAPSHOT</mica.version>
-    <obiba-commons.version>1.13.4</obiba-commons.version>
+    <mica.version>4.6-SNAPSHOT</mica.version>
+    <obiba-commons.version>1.15.2</obiba-commons.version>
     <rql-parser.version>0.3.3-obiba</rql-parser.version>
     <slf4j.version>1.7.21</slf4j.version>
     <log4j.version>2.12.1</log4j.version>
@@ -377,7 +377,7 @@
     <repository>
       <id>obiba-releases</id>
       <name>Obiba Maven Releases Repository</name>
-      <url>https://dl.bintray.com/obiba/maven</url>
+      <url>https://obiba.jfrog.io/obiba/libs-release</url>
       <releases>
         <enabled>true</enabled>
       </releases>
@@ -404,12 +404,12 @@
 
   <distributionManagement>
     <repository>
-      <id>obiba-bintray</id>
-      <url>https://api.bintray.com/obiba/maven/</url>
+      <id>obiba-release-local</id>
+      <url>https://obiba.jfrog.io/obiba/libs-release-local</url>
     </repository>
     <snapshotRepository>
-      <id>obiba-artifactory</id>
-      <url>https://obiba.jfrog.io/obiba/libs-snapshot</url>
+      <id>obiba-snapshot-local</id>
+      <url>https://obiba.jfrog.io/obiba/libs-snapshot-local</url>
     </snapshotRepository>
   </distributionManagement>
 
