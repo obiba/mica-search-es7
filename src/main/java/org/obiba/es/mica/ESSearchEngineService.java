@@ -96,8 +96,10 @@ public class ESSearchEngineService implements SearchEngineService {
       Settings.Builder builder = getSettings();
       createTransportClient(builder);
 
+      String bufferLimitBytes = builder.build().get("http.max_content_length_bytes");
+
       esIndexer = new ESIndexer(this);
-      esSearcher = new ESSearcher(this);
+      esSearcher = new ESSearcher(this, bufferLimitBytes == null || bufferLimitBytes.isEmpty() ? 250 * 1024 * 1024 : Integer.parseInt(bufferLimitBytes));
 
       running = true;
     }
