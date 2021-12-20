@@ -99,10 +99,16 @@ public class AggregationParser {
 
         switch (aggType) {
           case AggregationHelper.AGG_STERMS:
-            TermsAggregationBuilder termBuilder = AggregationBuilders.terms(entry.getKey()).field(entry.getValue());
+            String entryValue = entry.getValue();
+            TermsAggregationBuilder termBuilder = AggregationBuilders.terms(entry.getKey()).field(entryValue);
             if (minDocCount > -1) termBuilder.minDocCount(minDocCount);
-            if (subAggregations != null && subAggregations.containsKey(entry.getValue())) {
-              subAggregations.get(entry.getValue()).forEach(termBuilder::subAggregation);
+            if (subAggregations != null && subAggregations.containsKey(entryValue)) {
+              subAggregations.get(entry.getValue()).forEach(aggBuilder -> {
+                // Do not create a nested aggregation of the same term
+                if (!aggBuilder.getName().equals(entryValue)) {
+                  termBuilder.subAggregation(aggBuilder);
+                }
+              });
             }
             termsBuilders.add(termBuilder.order(BucketOrder.key(true)).size(Short.MAX_VALUE));
             break;
