@@ -30,7 +30,7 @@
     <obiba-commons.version>1.15.2</obiba-commons.version>
     <rql-parser.version>0.3.3-obiba</rql-parser.version>
     <slf4j.version>1.7.21</slf4j.version>
-    <log4j.version>2.12.1</log4j.version>
+    <log4j.version>2.16.0</log4j.version>
 
     <!-- maven plugins -->
     <github-release-plugin.version>1.2.0</github-release-plugin.version>
