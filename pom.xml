@@ -26,7 +26,7 @@
     <jna.version>4.1.0</jna.version>
     <junit.version>4.12</junit.version>
     <logback.version>1.2.0</logback.version>
-    <mica.version>4.6-SNAPSHOT</mica.version>
+    <mica.version>4.5.9</mica.version>
     <obiba-commons.version>1.15.2</obiba-commons.version>
     <rql-parser.version>0.3.3-obiba</rql-parser.version>
     <slf4j.version>1.7.21</slf4j.version>
