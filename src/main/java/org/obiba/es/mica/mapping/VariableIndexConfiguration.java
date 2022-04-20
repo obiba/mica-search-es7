@@ -10,16 +10,18 @@
 
 package org.obiba.es.mica.mapping;
 
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.client.indices.PutMappingRequest;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.xcontent.XContentBuilder;
+import org.elasticsearch.xcontent.XContentFactory;
 import org.obiba.mica.spi.search.ConfigurationProvider;
 import org.obiba.mica.spi.search.Indexer;
 import org.obiba.mica.spi.search.SearchEngineService;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch.indices.PutMappingRequest;
+
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.stream.Stream;
 
 public class VariableIndexConfiguration extends AbstractIndexConfiguration {
@@ -38,17 +40,19 @@ public class VariableIndexConfiguration extends AbstractIndexConfiguration {
     }
   }
 
-  private void setMappingProperties(RestHighLevelClient client, String indexName) {
+  private void setMappingProperties(ElasticsearchClient client, String indexName) {
     try {
-      client
-        .indices()
-        .putMapping(new PutMappingRequest(indexName)
-          .source(createMappingProperties(Indexer.HARMONIZED_VARIABLE_TYPE)), RequestOptions.DEFAULT);
+
+      XContentBuilder harmonizedmapping = createMappingProperties(Indexer.HARMONIZED_VARIABLE_TYPE);
+      XContentBuilder defaultMapping = createMappingProperties(Indexer.VARIABLE_TYPE);
 
       client
         .indices()
-        .putMapping(new PutMappingRequest(indexName)
-          .source(createMappingProperties(Indexer.VARIABLE_TYPE)), RequestOptions.DEFAULT);
+        .putMapping(PutMappingRequest.of(r -> r.index(indexName).withJson(new StringReader(Strings.toString(harmonizedmapping)))));
+
+      client
+        .indices()
+        .putMapping(PutMappingRequest.of(r -> r.index(indexName).withJson(new StringReader(Strings.toString(defaultMapping)))));
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

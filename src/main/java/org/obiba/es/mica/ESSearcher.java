@@ -19,7 +19,6 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.HttpAsyncResponseConsumerFactory;
 import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.core.CountRequest;
 import org.elasticsearch.client.core.CountResponse;
 import org.elasticsearch.common.Strings;
@@ -49,6 +48,8 @@ import org.obiba.mica.spi.search.support.JoinQuery;
 import org.obiba.mica.spi.search.support.Query;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
@@ -595,7 +596,7 @@ public class ESSearcher implements Searcher {
     return sourceFields;
   }
 
-  private RestHighLevelClient getClient() {
+  private ElasticsearchClient getClient() {
     return esSearchService.getClient();
   }
 

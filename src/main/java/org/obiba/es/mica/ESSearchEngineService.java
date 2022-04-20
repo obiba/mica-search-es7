@@ -16,11 +16,10 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.node.Node;
+import org.elasticsearch.xcontent.XContentType;
 import org.obiba.es.mica.mapping.DatasetIndexConfiguration;
 import org.obiba.es.mica.mapping.FileIndexConfiguration;
 import org.obiba.es.mica.mapping.NetworkIndexConfiguration;
@@ -36,12 +35,15 @@ import org.obiba.mica.spi.search.Searcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.json.jackson.JacksonJsonpMapper;
+import co.elastic.clients.transport.rest_client.RestClientTransport;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
-import java.util.StringJoiner;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
@@ -59,7 +61,7 @@ public class ESSearchEngineService implements SearchEngineService {
 
   private Node esNode;
 
-  private RestHighLevelClient client;
+  private ElasticsearchClient client;
 
   private ESIndexer esIndexer;
 
@@ -116,11 +118,7 @@ public class ESSearchEngineService implements SearchEngineService {
       }
     }
     if (client != null) {
-      try {
-        client.close();
-      } catch (IOException e) {
-        log.error("Failed to close client {}", e);
-      }
+      client.shutdown();
     }
     esNode = null;
     client = null;
@@ -141,7 +139,7 @@ public class ESSearchEngineService implements SearchEngineService {
     return esSearcher;
   }
 
-  public RestHighLevelClient getClient() {
+  public ElasticsearchClient getClient() {
     return client;
   }
 
@@ -206,7 +204,10 @@ public class ESSearchEngineService implements SearchEngineService {
       })
       .toArray(HttpHost[]::new);
 
-    client = new RestHighLevelClient(RestClient.builder(httpHosts));
+      RestClient restClient = RestClient.builder(httpHosts).build();
+      RestClientTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper());
+
+    client = new ElasticsearchClient(transport);
   }
 
   private boolean isDataNode() {

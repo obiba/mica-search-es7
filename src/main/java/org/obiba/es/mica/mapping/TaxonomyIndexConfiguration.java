@@ -10,17 +10,20 @@
 
 package org.obiba.es.mica.mapping;
 
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.indices.PutMappingRequest;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.xcontent.XContentBuilder;
+import org.elasticsearch.xcontent.XContentFactory;
 import org.obiba.mica.spi.search.ConfigurationProvider;
 import org.obiba.mica.spi.search.Indexer;
 import org.obiba.mica.spi.search.SearchEngineService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.GetMapping;
+
+import co.elastic.clients.elasticsearch.indices.PutMappingRequest;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.stream.Stream;
 
 public class TaxonomyIndexConfiguration extends AbstractIndexConfiguration {
@@ -33,29 +36,30 @@ public class TaxonomyIndexConfiguration extends AbstractIndexConfiguration {
 
   @Override
   public void onIndexCreated(SearchEngineService searchEngineService, String indexName) {
-    XContentBuilder mapping = null;
     try {
-
-      switch (indexName) {
-        case Indexer.TAXONOMY_INDEX:
-          mapping = createTaxonomyMappingProperties();
-          break;
-        case Indexer.VOCABULARY_INDEX:
-          mapping = createVocabularyMappingProperties();
-          break;
-        case Indexer.TERM_INDEX:
-          mapping = createTermMappingProperties();
-          break;
-      }
+      XContentBuilder mapping = getMappingFromIndexName(indexName);
 
       if (mapping != null) {
         getClient(searchEngineService)
           .indices()
-          .putMapping(new PutMappingRequest(indexName).source(mapping), RequestOptions.DEFAULT);
+          .putMapping(PutMappingRequest.of(r -> r.index(indexName).withJson(new StringReader(Strings.toString(mapping)))));
       }
       
     } catch (IOException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  private XContentBuilder getMappingFromIndexName(String indexName) throws IOException {
+    switch (indexName) {
+      case Indexer.TAXONOMY_INDEX:
+        return createTaxonomyMappingProperties();
+      case Indexer.VOCABULARY_INDEX:
+        return createVocabularyMappingProperties();
+      case Indexer.TERM_INDEX:
+        return createTermMappingProperties();
+      default:
+        return null;  
     }
   }
 

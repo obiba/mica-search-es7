@@ -16,23 +16,15 @@ import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.ReadContext;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.client.IndicesClient;
+
 import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.client.indices.CreateIndexRequest;
-import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.client.indices.GetMappingsRequest;
 import org.elasticsearch.client.indices.GetMappingsResponse;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.reindex.DeleteByQueryRequest;
+import org.elasticsearch.xcontent.XContentType;
 import org.obiba.mica.spi.search.IndexFieldMapping;
 import org.obiba.mica.spi.search.Indexable;
 import org.obiba.mica.spi.search.Indexer;
@@ -40,8 +32,28 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Persistable;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch.core.BulkRequest;
+import co.elastic.clients.elasticsearch.core.DeleteByQueryRequest;
+import co.elastic.clients.elasticsearch.core.DeleteRequest;
+import co.elastic.clients.elasticsearch.core.IndexRequest;
+import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
+import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
+import co.elastic.clients.elasticsearch.indices.DeleteIndexRequest;
+import co.elastic.clients.elasticsearch.indices.ElasticsearchIndicesClient;
+import co.elastic.clients.elasticsearch.indices.ExistsRequest;
+import co.elastic.clients.elasticsearch.indices.GetFieldMappingRequest;
+import co.elastic.clients.elasticsearch.indices.GetFieldMappingResponse;
+import co.elastic.clients.elasticsearch.indices.GetMappingRequest;
+import co.elastic.clients.elasticsearch.indices.GetMappingResponse;
+import co.elastic.clients.elasticsearch.indices.IndexSettings;
+import co.elastic.clients.json.JsonData;
+import co.elastic.clients.transport.endpoints.BooleanResponse;
+
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -66,11 +78,11 @@ public class ESIndexer implements Indexer {
   public void index(String indexName, Persistable<String> persistable, Persistable<String> parent) {
     log.debug("Indexing for indexName [{}] indexableObject [{}]", indexName, persistable);
     createIndexIfNeeded(indexName);
-    IndexRequest indexRequest =
+    IndexRequest<JsonData> indexRequest =
       getIndexRequestBuilder(indexName, persistable.getId(), toJson(persistable), parent == null ? null : parent.getId());
 
     try {
-      getClient().index(indexRequest, RequestOptions.DEFAULT);
+      getClient().index(indexRequest);
     } catch (IOException e) {
       log.error("Failed to index {} in index {} - {}", persistable.getId(), indexName, e);
     }
@@ -85,11 +97,11 @@ public class ESIndexer implements Indexer {
   public void index(String indexName, Indexable indexable, Indexable parent) {
     log.debug("Indexing for indexName [{}] indexableObject [{}]", indexName, indexable);
     createIndexIfNeeded(indexName);
-    IndexRequest indexRequest =
+    IndexRequest<JsonData> indexRequest =
       getIndexRequestBuilder(indexName, indexable.getId(), toJson(indexable), parent == null ? null : parent.getId());
 
     try {
-      getClient().index(indexRequest, RequestOptions.DEFAULT);
+      getClient().index(indexRequest);
     } catch (IOException e) {
       log.error("Failed to index {} in index {} - {}", indexable.getId(), indexName, e);
     }
@@ -118,23 +130,24 @@ public class ESIndexer implements Indexer {
     log.debug("Indexing all for indexName [{}] persistableObjectNumber [{}]", indexName, Iterables.size(persistables));
 
     createIndexIfNeeded(indexName);
-    BulkRequest bulkRequest = new BulkRequest();
-    persistables.forEach(persistable ->
-      bulkRequest.add(
-        getIndexRequestBuilder(
-          indexName,
-          persistable.getId(),
-          toJson(persistable),
-          parent == null ? null : parent.getId()
-        ))
+
+    List<BulkOperation> bulkOperations = new ArrayList<>();
+
+    persistables.forEach(persistable -> bulkOperations
+      .add(BulkOperation
+        .of(operation -> operation
+          .index(indexRequest -> indexRequest
+            .id(persistable.getId())
+            .document(persistable)
+          )
+        )
+      )
     );
 
-    if (bulkRequest.numberOfActions() > 0) {
-      try {
-        getClient().bulk(bulkRequest, RequestOptions.DEFAULT);
-      } catch (IOException e) {
-        log.error("Failed to bulk index {} - {}", indexName, e);
-      }
+    try {
+      getClient().bulk(BulkRequest.of(r -> r.operations(bulkOperations)));
+    } catch (IOException e) {
+      log.error("Failed to bulk index {} - {}", indexName, e);
     }
   }
 
@@ -147,25 +160,31 @@ public class ESIndexer implements Indexer {
   public void indexAllIndexables(String indexName, Iterable<? extends Indexable> indexables, @Nullable String parentId) {
     log.debug("Indexing all indexables for indexName [{}] persistableObjectNumber [{}]", indexName, Iterables.size(indexables));
     createIndexIfNeeded(indexName);
-    BulkRequest bulkRequest = new BulkRequest();
-    indexables.forEach(indexable ->
-      bulkRequest.add(getIndexRequestBuilder(indexName, indexable.getId(), toJson(indexable), parentId)));
 
-    if (bulkRequest.numberOfActions() > 0) {
-      try {
-        getClient().bulk(bulkRequest, RequestOptions.DEFAULT);
-      } catch (IOException e) {
-        log.error("Failed to bulk index {} - {}", indexName, e);
-      }
+    List<BulkOperation> bulkOperations = new ArrayList<>();
+    indexables.forEach(indexable -> bulkOperations
+      .add(BulkOperation
+        .of(operation -> operation
+          .index(indexRequest -> indexRequest
+            .id(indexable.getId())
+            .document(indexable)
+          )
+        )
+      )
+    );
+
+    try {
+      getClient().bulk(BulkRequest.of(r -> r.operations(bulkOperations)));
+    } catch (IOException e) {
+      log.error("Failed to bulk index {} - {}", indexName, e);
     }
   }
 
   @Override
   public void delete(String indexName, Persistable<String> persistable) {
     createIndexIfNeeded(indexName);
-    DeleteRequest deleteRequest = new DeleteRequest(indexName, persistable.getId());
     try {
-      getClient().delete(deleteRequest, RequestOptions.DEFAULT);
+      getClient().delete(DeleteRequest.of(r -> r.index(indexName).id(persistable.getId())));
     } catch (IOException e) {
       log.error("Failed to delete document in index {} - {}", persistable.getId(), indexName, e);
     }
@@ -174,9 +193,8 @@ public class ESIndexer implements Indexer {
   @Override
   public void delete(String indexName, Indexable indexable) {
     createIndexIfNeeded(indexName);
-    DeleteRequest deleteRequest = new DeleteRequest(indexName, indexable.getId());
     try {
-      getClient().delete(deleteRequest, RequestOptions.DEFAULT);
+      getClient().delete(DeleteRequest.of(r -> r.index(indexName).id(indexable.getId())));
     } catch (IOException e) {
       log.error("Failed to delete document in index {} - {}", indexable.getId(), indexName, e);
     }
@@ -186,10 +204,17 @@ public class ESIndexer implements Indexer {
   public void delete(String indexName, String[] types, Map.Entry<String, String> termQuery) {
     if (!hasIndex(indexName)) return;
 
-    QueryBuilder query = QueryBuilders.termQuery(termQuery.getKey(), termQuery.getValue());
+    DeleteByQueryRequest deleteRequest = DeleteByQueryRequest.of(r -> r
+      .index(indexName)
+      .query(q -> q
+        .term(t -> t
+          .field(termQuery.getKey()).value(termQuery.getValue())
+        )
+      )
+    );
 
     try {
-      getClient().deleteByQuery(new DeleteByQueryRequest(indexName).setQuery(query), RequestOptions.DEFAULT);
+      getClient().deleteByQuery(deleteRequest);
     } catch (IOException e) {
       log.error("Failed to delete document by query in index {} - {}", indexName, e);
     }
@@ -203,7 +228,8 @@ public class ESIndexer implements Indexer {
   @Override
   public boolean hasIndex(String indexName) {
     try {
-      return getClient().indices().exists(new GetIndexRequest(indexName), RequestOptions.DEFAULT);
+      BooleanResponse exists = getClient().indices().exists(ExistsRequest.of(r -> r.index(indexName)));
+      return exists.value();
     } catch (IOException e) {
       log.error("Failed to find index {} - {}", indexName, e);
     }
@@ -214,7 +240,7 @@ public class ESIndexer implements Indexer {
   @Override
   public void dropIndex(String indexName) {
     try {
-      getClient().indices().delete(new DeleteIndexRequest(indexName), RequestOptions.DEFAULT);
+      getClient().indices().delete(DeleteIndexRequest.of(r -> r.index(indexName)));
     } catch (IOException e) {
       log.error("Failed to drop index index {} - {}", indexName, e);
     }
@@ -231,7 +257,7 @@ public class ESIndexer implements Indexer {
 
   private ReadContext getContext(String indexName, String indexType) {
     try {
-      GetMappingsResponse result = getClient().indices().getMapping(new GetMappingsRequest().indices(indexName), RequestOptions.DEFAULT);
+      GetMappingsResponse result = getClient().indices().getMapping(new GetMappingsRequest());
       Map<String, MappingMetadata> mappings = result.mappings();
       MappingMetadata metaData = mappings.get(indexName);
       Object jsonContent = Configuration.defaultConfiguration().jsonProvider().parse(metaData.source().toString());
@@ -244,7 +270,7 @@ public class ESIndexer implements Indexer {
     return null;
   }
 
-  private RestHighLevelClient getClient() {
+  private ElasticsearchClient getClient() {
     return esSearchService.getClient();
   }
 
@@ -256,32 +282,23 @@ public class ESIndexer implements Indexer {
     }
   }
 
-  private IndexRequest getIndexRequestBuilder(String indexName, String id, String source, String parentId) {
-    IndexRequest request = new IndexRequest(indexName)
-      .id(id)
-      .source(source, XContentType.JSON);
-
-    if (parentId != null) {
-      request.routing(parentId);
-    }
-
+  private IndexRequest<JsonData> getIndexRequestBuilder(String indexName, String id, String source, String parentId) {
+    IndexRequest<JsonData> request = IndexRequest.of(r -> r.index(indexName).id(id).routing(parentId).withJson(new StringReader(source)));
     return request;
   }
 
   private synchronized void createIndexIfNeeded(String indexName) {
     log.trace("Ensuring index existence for index {}", indexName);
-    IndicesClient indicesAdmin = getClient().indices();
+    ElasticsearchIndicesClient indicesAdmin = getClient().indices();
 
     if (!hasIndex(indexName)) {
       log.info("Creating index {}", indexName);
 
-      Settings settings = Settings.builder() //
-          .put(esSearchService.getIndexSettings())
-          .put("number_of_shards", esSearchService.getNbShards()) //
-          .put("number_of_replicas", esSearchService.getNbReplicas()).build();
-
+      IndexSettings settings = new IndexSettings.Builder()
+        .numberOfReplicas(Integer.toString(esSearchService.getNbReplicas()))
+        .numberOfShards(Integer.toString(esSearchService.getNbShards())).build();
       try {
-        indicesAdmin.create(new CreateIndexRequest(indexName).settings(settings), RequestOptions.DEFAULT);
+        indicesAdmin.create(CreateIndexRequest.of(r -> r.index(indexName).settings(settings)));
         esSearchService.getIndexConfigurationListeners().forEach(listener -> listener.onIndexCreated(esSearchService, indexName));
       } catch (IOException e) {
         log.error("Failed to create index index {} - {}", indexName, e);

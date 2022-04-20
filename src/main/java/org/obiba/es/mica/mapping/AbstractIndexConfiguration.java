@@ -12,9 +12,8 @@ package org.obiba.es.mica.mapping;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.xcontent.XContentBuilder;
 import org.obiba.es.mica.ESSearchEngineService;
 import org.obiba.mica.spi.search.ConfigurationProvider;
 import org.obiba.mica.spi.search.Indexer;
@@ -24,6 +23,8 @@ import org.obiba.opal.core.domain.taxonomy.Taxonomy;
 import org.obiba.opal.core.domain.taxonomy.Vocabulary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import sun.util.locale.LanguageTag;
 
 import java.io.IOException;
@@ -49,7 +50,7 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
     this.configurationProvider = configurationProvider;
   }
 
-  protected RestHighLevelClient getClient(SearchEngineService searchEngineService) {
+  protected ElasticsearchClient getClient(SearchEngineService searchEngineService) {
     return ((ESSearchEngineService) searchEngineService).getClient();
   }
 
