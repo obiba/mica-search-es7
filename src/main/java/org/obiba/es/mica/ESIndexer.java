@@ -47,6 +47,7 @@ import co.elastic.clients.elasticsearch.indices.GetFieldMappingResponse;
 import co.elastic.clients.elasticsearch.indices.GetMappingRequest;
 import co.elastic.clients.elasticsearch.indices.GetMappingResponse;
 import co.elastic.clients.elasticsearch.indices.IndexSettings;
+import co.elastic.clients.elasticsearch.indices.get_mapping.IndexMappingRecord;
 import co.elastic.clients.json.JsonData;
 import co.elastic.clients.transport.endpoints.BooleanResponse;
 
@@ -257,11 +258,11 @@ public class ESIndexer implements Indexer {
 
   private ReadContext getContext(String indexName, String indexType) {
     try {
-      GetMappingsResponse result = getClient().indices().getMapping(new GetMappingsRequest());
-      Map<String, MappingMetadata> mappings = result.mappings();
-      MappingMetadata metaData = mappings.get(indexName);
-      Object jsonContent = Configuration.defaultConfiguration().jsonProvider().parse(metaData.source().toString());
-      return JsonPath.using(Configuration.defaultConfiguration().addOptions(Option.ALWAYS_RETURN_LIST)).parse(jsonContent);
+      GetMappingResponse result = getClient().indices().getMapping(GetMappingRequest.of(r -> r.index(indexName)));
+      Map<String, IndexMappingRecord> mappings = result.result();
+      IndexMappingRecord record = mappings.get(indexName);
+      String recordAsString = Configuration.defaultConfiguration().jsonProvider().toJson(record.mappings().meta());
+      return JsonPath.using(Configuration.defaultConfiguration().addOptions(Option.ALWAYS_RETURN_LIST)).parse(recordAsString);
 
     } catch (IOException e) {
       log.error("Failed to drop index index {} - {}", indexName, e);
