@@ -47,6 +47,7 @@ import co.elastic.clients.elasticsearch.indices.GetFieldMappingResponse;
 import co.elastic.clients.elasticsearch.indices.GetMappingRequest;
 import co.elastic.clients.elasticsearch.indices.GetMappingResponse;
 import co.elastic.clients.elasticsearch.indices.IndexSettings;
+import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
 import co.elastic.clients.elasticsearch.indices.get_mapping.IndexMappingRecord;
 import co.elastic.clients.json.JsonData;
 import co.elastic.clients.transport.endpoints.BooleanResponse;
@@ -295,7 +296,8 @@ public class ESIndexer implements Indexer {
     if (!hasIndex(indexName)) {
       log.info("Creating index {}", indexName);
 
-      IndexSettings settings = new IndexSettings.Builder().withJson(new StringReader(esSearchService.getIndexSettings().toString()))
+      IndexSettings settings = new IndexSettings.Builder()
+        .analysis(IndexSettingsAnalysis.of(s -> s.withJson(new StringReader(esSearchService.getIndexSettings().toString()))))
         .numberOfReplicas(Integer.toString(esSearchService.getNbReplicas()))
         .numberOfShards(Integer.toString(esSearchService.getNbShards())).build();
       try {
