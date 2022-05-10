@@ -47,15 +47,6 @@
           org.obiba.es:*
         </include>
         <include>
-          org.elasticsearch:*
-        </include>
-        <include>
-          org.elasticsearch.client:*
-        </include>
-        <include>
-          org.elasticsearch.plugin:*
-        </include>
-        <include>
           org.apache.lucene:*
         </include>
         <include>
@@ -74,38 +65,23 @@
           com.fasterxml.jackson.dataformat:*
         </include>
         <include>
-          com.twitter:*
-        </include>
-        <include>
           com.tdunning:*
         </include>
         <include>
           com.carrotsearch:*
         </include>
         <include>
-          io.netty:*
-        </include>
-        <include>
-          com.ning:*
-        </include>
-        <include>
           net.java.dev.jna:*
         </include>
         <include>
-          co.elastic:*
-        </include>
-        <include>
           co.elastic.clients:*
-        </include>
-        <include>
-          co.elastic.clients.json:*
-        </include>
-        <include>
-          co.elastic.clients.json.jackson:*
-        </include>        
+        </include>      
         <include>
           jakarta.json:*
         </include>
+        <include>
+          org.eclipse.parsson:*
+        </include>        
       </includes>
     </dependencySet>
   </dependencySets>
