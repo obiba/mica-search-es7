@@ -91,6 +91,12 @@
         <include>
           net.java.dev.jna:*
         </include>
+        <include>
+          co.elastic:*
+        </include>
+        <include>
+          co.elastic.clients:*
+        </include>
       </includes>
     </dependencySet>
   </dependencySets>
