@@ -97,6 +97,9 @@
         <include>
           co.elastic.clients:*
         </include>
+        <include>
+          jakarta.json:*
+        </include>
       </includes>
     </dependencySet>
   </dependencySets>
