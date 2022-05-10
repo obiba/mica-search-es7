@@ -47,6 +47,15 @@
           org.obiba.es:*
         </include>
         <include>
+          org.elasticsearch:*
+        </include>
+        <include>
+          org.elasticsearch.client:*
+        </include>
+        <include>
+          org.elasticsearch.plugin:*
+        </include>
+        <include>
           org.apache.lucene:*
         </include>
         <include>
