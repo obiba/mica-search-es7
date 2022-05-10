@@ -10,22 +10,14 @@
 
 package org.obiba.es.mica.results;
 
+import co.elastic.clients.elasticsearch.core.CountResponse;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.core.CountResponse;
-import org.elasticsearch.search.aggregations.bucket.MultiBucketsAggregation;
-import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.obiba.mica.spi.search.Searcher;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
-/**
- * {@link SearchResponse} wrapper.
- */
 public class ESResponseCountResults implements Searcher.DocumentResults {
   private final CountResponse response;
 
@@ -35,7 +27,7 @@ public class ESResponseCountResults implements Searcher.DocumentResults {
 
   @Override
   public long getTotal() {
-    return response.getCount();
+    return response != null ? response.count() : 0;
   }
 
   @Override

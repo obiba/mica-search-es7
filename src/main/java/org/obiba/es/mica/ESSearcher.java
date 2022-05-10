@@ -14,13 +14,8 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.HttpAsyncResponseConsumerFactory;
 import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.core.CountRequest;
-import org.elasticsearch.client.core.CountResponse;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.query.BoolQueryBuilder;
@@ -50,11 +45,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.query_dsl.WrapperQuery;
+import co.elastic.clients.elasticsearch.core.CountResponse;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringReader;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -144,10 +143,13 @@ public class ESSearcher implements Searcher {
 
     log.debug("Request /{}/{}", indexName, type);
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
-    SearchResponse response = getClient().search(new SearchRequest(indexName).source(sourceBuilder).searchType(SearchType.QUERY_THEN_FETCH), commonRequestOptions);
+
+    SearchResponse<DocumentResult> response = getClient().search(s -> 
+      s.index(indexName).query(WrapperQuery.of(q -> q.withJson(new StringReader(sourceBuilder.toString())))._toQuery()), Searcher.DocumentResult.class);
+      
     log.debug("Response /{}/{}", indexName, type);
     if (log.isTraceEnabled())
-      log.trace("Response /{}/{}: totalHits={}", indexName, type, response == null ? 0 : response.getHits().getTotalHits().value);
+      log.trace("Response /{}/{}: totalHits={}", indexName, type, response == null ? 0 : response.hits().total().value());
 
     return new ESResponseDocumentResults(response);
   }
@@ -169,16 +171,17 @@ public class ESSearcher implements Searcher {
 
     log.debug("Request /{}/{}", indexName, type);
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
-    SearchResponse response = null;
+    SearchResponse<DocumentResult> response = null;
     try {
-      response = getClient().search(new SearchRequest(indexName).source(sourceBuilder).searchType(SearchType.QUERY_THEN_FETCH), commonRequestOptions);
+      response = getClient().search(s -> 
+        s.index(indexName).query(WrapperQuery.of(q -> q.withJson(new StringReader(sourceBuilder.toString())))._toQuery()), Searcher.DocumentResult.class);
     } catch (IOException e) {
       log.error("Failed to cover {} - {}", indexName, e);
     }
 
     log.debug("Response /{}/{}", indexName, type);
     if (log.isTraceEnabled())
-      log.trace("Response /{}/{}: totalHits={}", indexName, type, response == null ? 0 : response.getHits().getTotalHits().value);
+      log.trace("Response /{}/{}: totalHits={}", indexName, type, response == null ? 0 : response.hits().total().value());
 
     return new ESResponseDocumentResults(response);
   }
@@ -201,16 +204,17 @@ public class ESSearcher implements Searcher {
 
     log.debug("Request /{}/{}", indexName, type);
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
-    SearchResponse response = null;
+    SearchResponse<DocumentResult> response = null;
 
     try {
-      response = getClient().search(new SearchRequest(indexName).source(sourceBuilder).searchType(SearchType.QUERY_THEN_FETCH), commonRequestOptions);
+      response = getClient().search(s -> 
+        s.index(indexName).query(WrapperQuery.of(q -> q.withJson(new StringReader(sourceBuilder.toString())))._toQuery()), Searcher.DocumentResult.class);
     } catch (IOException e) {
       log.error("Failed to cover {} - {}", indexName, e);
     }
     log.debug("Response /{}/{}", indexName, type);
     if (log.isTraceEnabled())
-      log.trace("Response /{}/{}: totalHits={}", indexName, type, response == null ? 0 : response.getHits().getTotalHits().value);
+      log.trace("Response /{}/{}: totalHits={}", indexName, type, response == null ? 0 : response.hits().total().value());
 
     return new ESResponseDocumentResults(response);
   }
@@ -233,15 +237,16 @@ public class ESSearcher implements Searcher {
 
     log.debug("Request /{}/{}", indexName, type);
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
-    SearchResponse response = null;
+    SearchResponse<DocumentResult> response = null;
     try {
-      response = getClient().search(new SearchRequest(indexName).source(sourceBuilder).searchType(SearchType.QUERY_THEN_FETCH), commonRequestOptions);
+      response = getClient().search(s -> 
+        s.index(indexName).query(WrapperQuery.of(q -> q.withJson(new StringReader(sourceBuilder.toString())))._toQuery()), Searcher.DocumentResult.class);
     } catch (IOException e) {
       log.error("Failed to aggregate {} - {}", indexName, e);
     }
     log.debug("Response /{}/{}", indexName, type);
     if (log.isTraceEnabled())
-      log.trace("Response /{}/{}: totalHits={}", indexName, type, response == null ? 0 : response.getHits().getTotalHits().value);
+      log.trace("Response /{}/{}: totalHits={}", indexName, type, response == null ? 0 : response.hits().total().value());
 
     return new ESResponseDocumentResults(response);
   }
@@ -266,9 +271,10 @@ public class ESSearcher implements Searcher {
 
     log.debug("Request /{}/{}", indexName, type);
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
-    SearchResponse response = null;
+    SearchResponse<DocumentResult> response = null;
     try {
-      response = getClient().search(new SearchRequest(indexName).source(sourceBuilder).searchType(SearchType.QUERY_THEN_FETCH), commonRequestOptions);
+      response = getClient().search(s -> 
+        s.index(indexName).query(WrapperQuery.of(q -> q.withJson(new StringReader(sourceBuilder.toString())))._toQuery()), Searcher.DocumentResult.class);
     } catch (IOException e) {
       log.error("Failed to find {} - {}", indexName, e);
     }
@@ -294,7 +300,7 @@ public class ESSearcher implements Searcher {
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, countQueryBuilder.toString());
     CountResponse response = null;
     try {
-      response = getClient().count(new CountRequest(indexName).query(countQueryBuilder), commonRequestOptions);
+      response = getClient().count(r -> r.index(indexName).withJson(new StringReader(countQueryBuilder.toString())));
     } catch (IOException e) {
       log.error("Failed to count {} - {}", indexName, e);
     }
@@ -326,9 +332,10 @@ public class ESSearcher implements Searcher {
 
     log.debug("Request /{}/{}", indexName, type);
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
-    SearchResponse response = null;
+    SearchResponse<DocumentResult> response = null;
     try {
-      response = getClient().search(new SearchRequest(indexName).source(sourceBuilder), commonRequestOptions);
+      response = getClient().search(s -> 
+        s.index(indexName).query(WrapperQuery.of(q -> q.withJson(new StringReader(sourceBuilder.toString())))._toQuery()), Searcher.DocumentResult.class);
     } catch (IOException e) {
       log.error("Failed to count {} - {}", indexName, e);
     }
@@ -358,8 +365,9 @@ public class ESSearcher implements Searcher {
     List<String> names = Lists.newArrayList();
 
     try {
-      SearchResponse response = getClient().search(new SearchRequest(indexName).source(sourceBuilder), commonRequestOptions);
-      response.getHits().forEach(hit -> {
+      SearchResponse<DocumentResult> response = getClient().search(s -> 
+        s.index(indexName).query(WrapperQuery.of(q -> q.withJson(new StringReader(sourceBuilder.toString())))._toQuery()), Searcher.DocumentResult.class);
+      response.hits().hits().forEach(hit -> {
           String value = ESHitSourceMapHelper.flattenMap(hit).get(fieldName).toLowerCase();
           names.add(Joiner.on(" ").join(Splitter.on(" ").trimResults().splitToList(value).stream()
             .filter(str -> !str.contains("[") && !str.contains("(") && !str.contains("{") && !str.contains("]") && !str.contains(")") && !str.contains("}"))
@@ -386,16 +394,17 @@ public class ESSearcher implements Searcher {
 
     log.debug("Request: /{}/{}", indexName, type);
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
-    SearchResponse response = null;
+    SearchResponse<DocumentResult> response = null;
     try {
-      response = getClient().search(new SearchRequest(indexName).source(sourceBuilder), commonRequestOptions);
+      response = getClient().search(s -> 
+        s.index(indexName).query(WrapperQuery.of(q -> q.withJson(new StringReader(sourceBuilder.toString())))._toQuery()), Searcher.DocumentResult.class);
     } catch (IOException e) {
       log.error("Failed to get document by ID {} - {}", indexName, e);
     }
     log.debug("Response /{}/{}", indexName, type);
 
-    if (response == null || response.getHits().getTotalHits().value == 0) return null;
-    return new ByteArrayInputStream(response.getHits().getAt(0).getSourceAsString().getBytes());
+    if (response == null || response.hits().total().value() == 0) return null;
+    return new ByteArrayInputStream(response.hits().hits().get(0).toString().getBytes());
   }
 
   @Override
@@ -409,16 +418,17 @@ public class ESSearcher implements Searcher {
 
     log.debug("Request /{}/{}", indexName, type);
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
-    SearchResponse response = null;
+    SearchResponse<DocumentResult> response = null;
     try {
-      response = getClient().search(new SearchRequest(indexName).source(sourceBuilder), commonRequestOptions);
+      response = getClient().search(s -> 
+        s.index(indexName).query(WrapperQuery.of(q -> q.withJson(new StringReader(sourceBuilder.toString())))._toQuery()), Searcher.DocumentResult.class);
     } catch (IOException e) {
       log.error("Failed to get document by class name {} - {}", indexName, e);
     }
     log.debug("Response /{}/{}", indexName, type);
 
-    if (response == null || response.getHits().getTotalHits().value == 0) return null;
-    return new ByteArrayInputStream(response.getHits().getAt(0).getSourceAsString().getBytes());
+    if (response == null || response.hits().total().value() == 0) return null;
+    return new ByteArrayInputStream(response.hits().hits().get(0).toString().getBytes());
   }
 
   @Override
@@ -445,9 +455,10 @@ public class ESSearcher implements Searcher {
 
     log.debug("Request /{}/{}", indexName, type);
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
-    SearchResponse response = null;
+    SearchResponse<DocumentResult> response = null;
     try {
-      response = getClient().search(new SearchRequest(indexName).source(sourceBuilder), commonRequestOptions);
+      response = getClient().search(s -> 
+        s.index(indexName).query(WrapperQuery.of(q -> q.withJson(new StringReader(sourceBuilder.toString())))._toQuery()), Searcher.DocumentResult.class);
     } catch (IOException e) {
       log.error("Failed to get documents by class name{} - {}", indexName, e);
     }
@@ -485,9 +496,10 @@ public class ESSearcher implements Searcher {
 
     log.debug("Request /{}/{}", indexName, type);
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
-    SearchResponse response = null;
+    SearchResponse<DocumentResult> response = null;
     try {
-      response = getClient().search(new SearchRequest(indexName).source(sourceBuilder), commonRequestOptions);
+      response = getClient().search(s -> 
+        s.index(indexName).query(WrapperQuery.of(q -> q.withJson(new StringReader(sourceBuilder.toString())))._toQuery()), Searcher.DocumentResult.class);
     } catch (IOException e) {
       log.error("Failed to get documents {} - {}", indexName, e);
     }
@@ -510,10 +522,11 @@ public class ESSearcher implements Searcher {
     try {
       log.debug("Request /{}/{}: {}", indexName, type, sourceBuilder);
       if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
-      SearchResponse response = getClient().search(new SearchRequest(indexName).source(sourceBuilder).searchType(SearchType.QUERY_THEN_FETCH), commonRequestOptions);
+      SearchResponse<DocumentResult> response = getClient().search(s -> 
+        s.index(indexName).query(WrapperQuery.of(q -> q.withJson(new StringReader(sourceBuilder.toString())))._toQuery()), Searcher.DocumentResult.class);
       log.debug("Response /{}/{}: {}", indexName, type, response);
 
-      return response.getAggregations().asList().stream().flatMap(a -> ((Terms) a).getBuckets().stream())
+      return response.aggregations().entrySet().stream().flatMap(a -> ((Terms) a).getBuckets().stream())
           .map(a -> a.getKey().toString()).distinct().collect(Collectors.toList()).size();
     } catch (IndexNotFoundException | IOException e) {
       log.warn("Count of Studies With Variables failed", e);

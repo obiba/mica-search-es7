@@ -12,20 +12,23 @@ package org.obiba.es.mica.support;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
-import org.elasticsearch.search.SearchHit;
+import org.obiba.mica.spi.search.Searcher;
+
+import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.json.JsonData;
 
 import java.util.Map;
 
 final public class ESHitSourceMapHelper {
 
-  public static Map<String, String> flattenMap(SearchHit hit) {
-    Map<String, Object> source = hit.getSourceAsMap();
+  public static Map<String, String> flattenMap(Hit<Searcher.DocumentResult> hit) {
+    Map<String, JsonData> source = hit.fields();
     Map<String, String> flattenedMap = Maps.newHashMap();
     flattenMap(source, flattenedMap, "");
     return flattenedMap;
   }
 
-  public static void flattenMap(Map<String, Object> source, Map<String, String> flattened) {
+  public static void flattenMap(Map<String, JsonData> source, Map<String, String> flattened) {
     flattenMap(source, flattened, "");
   }
 
@@ -37,7 +40,7 @@ final public class ESHitSourceMapHelper {
    * @param flattened
    * @param key
    */
-  private static void flattenMap(Map<String, Object> source, Map<String, String> flattened, String key) {
+  private static void flattenMap(Map<String, JsonData> source, Map<String, String> flattened, String key) {
     source.entrySet().stream().forEach(entry -> {
       Object value = entry.getValue();
       if (value instanceof Map) {

@@ -10,10 +10,11 @@
 
 package org.obiba.es.mica.results;
 
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.search.aggregations.bucket.MultiBucketsAggregation;
-import org.elasticsearch.search.aggregations.bucket.terms.Terms;
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
+import co.elastic.clients.elasticsearch._types.aggregations.MultiTermsBucket;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
 import org.obiba.mica.spi.search.Searcher;
+import org.obiba.mica.spi.search.Searcher.DocumentResult;
 
 import java.util.List;
 import java.util.Map;
@@ -24,33 +25,33 @@ import java.util.stream.StreamSupport;
  * {@link SearchResponse} wrapper.
  */
 public class ESResponseDocumentResults implements Searcher.DocumentResults {
-  private final SearchResponse response;
+  private final SearchResponse<DocumentResult> response;
 
-  public ESResponseDocumentResults(SearchResponse response) {
+  public ESResponseDocumentResults(SearchResponse<DocumentResult> response) {
     this.response = response;
   }
 
   @Override
   public long getTotal() {
-    return response.getHits().getTotalHits().value;
+    return response.hits().total().value();
   }
 
   @Override
   public List<Searcher.DocumentResult> getDocuments() {
-    return StreamSupport.stream(response.getHits().spliterator(), false)
+    return StreamSupport.stream(response.hits().hits().spliterator(), false)
         .map(ESHitDocumentResult::new)
         .collect(Collectors.toList());
   }
 
   @Override
   public Map<String, Long> getAggregation(String field) {
-    Terms aggregation = response.getAggregations().get(field);
-    return aggregation.getBuckets().stream().collect(Collectors.toMap(MultiBucketsAggregation.Bucket::getKeyAsString, MultiBucketsAggregation.Bucket::getDocCount));
+    Aggregate aggregation = response.aggregations().get(field);
+    return aggregation.multiTerms().buckets().array().stream().collect(Collectors.toMap(MultiTermsBucket::keyAsString, MultiTermsBucket::docCount));
   }
 
   @Override
   public List<Searcher.DocumentAggregation> getAggregations() {
-    return response.getAggregations().asList().stream()
+    return response.aggregations().values().stream()
         .map(ESDocumentAggregation::new).collect(Collectors.toList());
   }
 }

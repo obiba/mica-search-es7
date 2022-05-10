@@ -10,34 +10,35 @@
 
 package org.obiba.es.mica.results;
 
-import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.obiba.mica.spi.search.Searcher;
+
+import co.elastic.clients.elasticsearch._types.aggregations.StringTermsBucket;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * {@link Terms.Bucket} wrapper.
+ * {@link StringTermsBucket} wrapper.
  */
 public class ESDocumentTermsBucket implements Searcher.DocumentTermsBucket {
-  private final Terms.Bucket bucket;
+  private final StringTermsBucket bucket;
 
-  public ESDocumentTermsBucket(Terms.Bucket bucket) {
+  public ESDocumentTermsBucket(StringTermsBucket bucket) {
     this.bucket = bucket;
   }
 
   @Override
   public long getDocCount() {
-    return bucket.getDocCount();
+    return bucket.docCount();
   }
 
   @Override
   public String getKeyAsString() {
-    return bucket.getKeyAsString();
+    return bucket.key();
   }
 
   @Override
   public List<Searcher.DocumentAggregation> getAggregations() {
-    return bucket.getAggregations().asList().stream().map(ESDocumentAggregation::new).collect(Collectors.toList());
+    return bucket.aggregations().values().stream().map(ESDocumentAggregation::new).collect(Collectors.toList());
   }
 }

@@ -10,42 +10,43 @@
 
 package org.obiba.es.mica.results;
 
-import org.elasticsearch.search.aggregations.Aggregation;
-import org.elasticsearch.search.aggregations.metrics.Stats;
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
+import co.elastic.clients.elasticsearch._types.aggregations.StatsAggregate;
+
 import org.obiba.mica.spi.search.Searcher;
 
 /**
- * {@link Stats} aggregation wrapper.
+ * {@link StatsAggregate} aggregation wrapper.
  */
 public class ESDocumentStatsAggregation implements Searcher.DocumentStatsAggregation {
-  private final Stats stats;
+  private final StatsAggregate stats;
 
-  public ESDocumentStatsAggregation(Aggregation stats) {
-    this.stats = (Stats) stats;
+  public ESDocumentStatsAggregation(Aggregate stats) {
+    this.stats = stats.stats();
   }
 
   @Override
   public long getCount() {
-    return stats.getCount();
+    return stats.count();
   }
 
   @Override
   public double getMin() {
-    return stats.getMin();
+    return stats.min();
   }
 
   @Override
   public double getMax() {
-    return stats.getMax();
+    return stats.max();
   }
 
   @Override
   public double getAvg() {
-    return stats.getAvg();
+    return stats.avg();
   }
 
   @Override
   public double getSum() {
-    return stats.getSum();
+    return stats.sum();
   }
 }
