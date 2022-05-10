@@ -10,10 +10,14 @@
 
 package org.obiba.es.mica;
 
+import co.elastic.clients.json.JsonData;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import jakarta.json.JsonObject;
+import net.minidev.json.JSONObject;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.common.Strings;
@@ -42,6 +46,7 @@ import co.elastic.clients.transport.rest_client.RestClientTransport;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -70,6 +75,8 @@ public class ESSearchEngineService implements SearchEngineService {
   private ConfigurationProvider configurationProvider;
 
   private Set<Indexer.IndexConfigurationListener> indexConfigurationListeners;
+
+  private String indexSettings;
 
   @Override
   public String getName() {
@@ -249,8 +256,8 @@ public class ESSearchEngineService implements SearchEngineService {
     return dataDir;
   }
 
-  Settings getIndexSettings() {
-    return getSettings().build().getByPrefix("index.");
+  String getIndexSettings() {
+    return indexSettings;
   }
 
   private Settings.Builder getSettings() {
@@ -264,6 +271,11 @@ public class ESSearchEngineService implements SearchEngineService {
     if (defaultSettings.exists()) {
       try {
         builder.loadFromPath(defaultSettings.toPath());
+        ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
+        Map map = objectMapper.readValue(defaultSettings, Map.class);
+        JSONObject jsonObject = new JSONObject(map);
+        JSONObject indexMap = new JSONObject((Map) jsonObject.get("index"));
+        indexSettings = indexMap.toJSONString();
       } catch (IOException e) {
         log.error("Failed to load default settings {}", e);
       }
