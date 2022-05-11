@@ -10,13 +10,12 @@
 
 package org.obiba.es.mica;
 
-import co.elastic.clients.json.JsonData;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import jakarta.json.JsonObject;
 import net.minidev.json.JSONObject;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.RestClient;
@@ -76,7 +75,9 @@ public class ESSearchEngineService implements SearchEngineService {
 
   private Set<Indexer.IndexConfigurationListener> indexConfigurationListeners;
 
-  private String indexSettings;
+  private String indexSettings = "{}";
+
+  private ObjectMapper yamlObjectMapper = new ObjectMapper(new YAMLFactory());
 
   @Override
   public String getName() {
@@ -271,11 +272,17 @@ public class ESSearchEngineService implements SearchEngineService {
     if (defaultSettings.exists()) {
       try {
         builder.loadFromPath(defaultSettings.toPath());
-        ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
-        Map map = objectMapper.readValue(defaultSettings, Map.class);
-        JSONObject jsonObject = new JSONObject(map);
-        JSONObject indexMap = new JSONObject((Map) jsonObject.get("index"));
-        indexSettings = indexMap.toJSONString();
+        
+        Map<String, Object> defaultSettingsMap = yamlObjectMapper.readValue(defaultSettings, new TypeReference<Map<String, Object>>() {});
+
+        if (defaultSettingsMap.containsKey("index")) {
+          Object defaultSettingsIndexObject = defaultSettingsMap.get("index");
+
+          if (defaultSettingsIndexObject instanceof Map) {
+            indexSettings = new JSONObject((Map) defaultSettingsIndexObject).toJSONString();
+          }          
+        }
+
       } catch (IOException e) {
         log.error("Failed to load default settings {}", e);
       }

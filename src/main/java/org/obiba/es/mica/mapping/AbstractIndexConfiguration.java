@@ -171,7 +171,6 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
                                                        String pattern) throws IOException {
     mapping.startObject(name)
       .field("path_match", pattern)
-      .startObject("mapping").field("include_in_all", false).endObject()
       .endObject();
   }
 

@@ -296,7 +296,13 @@ public class ESIndexer implements Indexer {
     if (!hasIndex(indexName)) {
       log.info("Creating index {}", indexName);
 
-      IndexSettings settings = new IndexSettings.Builder().withJson(new StringReader(esSearchService.getIndexSettings()))
+      IndexSettings.Builder indexSettingsBuilder = new IndexSettings.Builder();
+
+      if (!esSearchService.getIndexSettings().equals("{}")) {
+        indexSettingsBuilder.withJson(new StringReader(esSearchService.getIndexSettings()));
+      }
+
+      IndexSettings settings = indexSettingsBuilder
         .numberOfReplicas(Integer.toString(esSearchService.getNbReplicas()))
         .numberOfShards(Integer.toString(esSearchService.getNbShards())).build();
       try {
