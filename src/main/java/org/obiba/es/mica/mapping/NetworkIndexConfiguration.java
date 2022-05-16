@@ -42,7 +42,7 @@ public class NetworkIndexConfiguration extends AbstractIndexConfiguration {
         Indexer.PUBLISHED_NETWORK_INDEX.equals(indexName)) {
       try {
         XContentBuilder properties = createMappingProperties();
-        
+
         getClient(searchEngineService)
           .indices()
           .putMapping(PutMappingRequest.of(r -> r.index(indexName).withJson(new StringReader(Strings.toString(properties)))));
@@ -54,9 +54,6 @@ public class NetworkIndexConfiguration extends AbstractIndexConfiguration {
 
   private XContentBuilder createMappingProperties() throws IOException {
     XContentBuilder mapping = XContentFactory.jsonBuilder().startObject();
-    startDynamicTemplate(mapping);
-    dynamicTemplateExcludeFieldFromSearch(mapping, "parent_id", "*Memberships.parentId");
-    endDynamicTemplate(mapping);
 
     mapping.startObject("properties");
     Taxonomy taxonomy = getTaxonomy();

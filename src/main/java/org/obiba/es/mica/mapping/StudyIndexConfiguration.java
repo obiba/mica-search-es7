@@ -54,9 +54,6 @@ public class StudyIndexConfiguration extends AbstractIndexConfiguration {
 
   private XContentBuilder createMappingProperties() throws IOException {
     XContentBuilder mapping = XContentFactory.jsonBuilder().startObject();
-    startDynamicTemplate(mapping);
-    dynamicTemplateExcludeFieldFromSearch(mapping, "parent_id", "*Memberships.parentId");
-    endDynamicTemplate(mapping);
 
     mapping.startObject("properties");
     Taxonomy taxonomy = getTaxonomy();
