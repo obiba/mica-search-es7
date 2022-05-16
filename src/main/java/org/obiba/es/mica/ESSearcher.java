@@ -141,7 +141,7 @@ public class ESSearcher implements Searcher {
     log.debug("Request /{}/{}", indexName, type);
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
 
-    SearchResponse<ObjectNode> response = getClient().search(s -> s.index(indexName).q(sourceBuilder.toString()), ObjectNode.class);
+    SearchResponse<ObjectNode> response = getClient().search(s -> s.index(indexName).query(co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.withJson(new StringReader(sourceBuilder.query().toString())))), ObjectNode.class);
 
     log.debug("Response /{}/{}", indexName, type);
     if (log.isTraceEnabled())
@@ -169,7 +169,7 @@ public class ESSearcher implements Searcher {
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
     SearchResponse<ObjectNode> response = null;
     try {
-      response = getClient().search(s -> s.index(indexName).q(sourceBuilder.toString()), ObjectNode.class);
+      response = getClient().search(s -> s.index(indexName).query(co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.withJson(new StringReader(sourceBuilder.query().toString())))), ObjectNode.class);
     } catch (IOException e) {
       log.error("Failed to cover {} - {}", indexName, e);
     }
@@ -202,7 +202,7 @@ public class ESSearcher implements Searcher {
     SearchResponse<ObjectNode> response = null;
 
     try {
-      response = getClient().search(s -> s.index(indexName).q(sourceBuilder.toString()), ObjectNode.class);
+      response = getClient().search(s -> s.index(indexName).query(co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.withJson(new StringReader(sourceBuilder.query().toString())))), ObjectNode.class);
     } catch (IOException e) {
       log.error("Failed to cover {} - {}", indexName, e);
     }
@@ -233,7 +233,7 @@ public class ESSearcher implements Searcher {
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
     SearchResponse<ObjectNode> response = null;
     try {
-      response = getClient().search(s -> s.index(indexName).q(sourceBuilder.toString()), ObjectNode.class);
+      response = getClient().search(s -> s.index(indexName).query(co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.withJson(new StringReader(sourceBuilder.query().toString())))), ObjectNode.class);
     } catch (IOException e) {
       log.error("Failed to aggregate {} - {}", indexName, e);
     }
@@ -266,7 +266,7 @@ public class ESSearcher implements Searcher {
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
     SearchResponse<ObjectNode> response = null;
     try {
-      response = getClient().search(s -> s.index(indexName).q(sourceBuilder.toString()), ObjectNode.class);
+      response = getClient().search(s -> s.index(indexName).query(co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.withJson(new StringReader(sourceBuilder.toString())))), ObjectNode.class);
     } catch (IOException e) {
       log.error("Failed to find {} - {}", indexName, e);
     }
@@ -326,7 +326,7 @@ public class ESSearcher implements Searcher {
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
     SearchResponse<ObjectNode> response = null;
     try {
-      response = getClient().search(s -> s.index(indexName).q(sourceBuilder.toString()), ObjectNode.class);
+      response = getClient().search(s -> s.index(indexName).query(co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.withJson(new StringReader(sourceBuilder.query().toString())))), ObjectNode.class);
     } catch (IOException e) {
       log.error("Failed to count {} - {}", indexName, e);
     }
@@ -356,7 +356,7 @@ public class ESSearcher implements Searcher {
     List<String> names = Lists.newArrayList();
 
     try {
-      SearchResponse<ObjectNode> response = getClient().search(s -> s.index(indexName).q(sourceBuilder.toString()), ObjectNode.class);
+      SearchResponse<ObjectNode> response = getClient().search(s -> s.index(indexName).query(co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.withJson(new StringReader(sourceBuilder.query().toString())))), ObjectNode.class);
       response.hits().hits().forEach(hit -> {
           String value = ESHitSourceMapHelper.flattenMap(hit).get(fieldName).toLowerCase();
           names.add(Joiner.on(" ").join(Splitter.on(" ").trimResults().splitToList(value).stream()
@@ -386,7 +386,7 @@ public class ESSearcher implements Searcher {
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
     SearchResponse<ObjectNode> response = null;
     try {
-      response = getClient().search(s -> s.index(indexName).q(sourceBuilder.toString()), ObjectNode.class);
+      response = getClient().search(s -> s.index(indexName).query(co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.withJson(new StringReader(sourceBuilder.query().toString())))), ObjectNode.class);
     } catch (IOException e) {
       log.error("Failed to get document by ID {} - {}", indexName, e);
     }
@@ -409,7 +409,7 @@ public class ESSearcher implements Searcher {
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
     SearchResponse<ObjectNode> response = null;
     try {
-      response = getClient().search(s -> s.index(indexName).q(sourceBuilder.toString()), ObjectNode.class);
+      response = getClient().search(s -> s.index(indexName).query(co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.withJson(new StringReader(sourceBuilder.query().toString())))), ObjectNode.class);
     } catch (IOException e) {
       log.error("Failed to get document by class name {} - {}", indexName, e);
     }
@@ -445,7 +445,7 @@ public class ESSearcher implements Searcher {
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
     SearchResponse<ObjectNode> response = null;
     try {
-      response = getClient().search(s -> s.index(indexName).q(sourceBuilder.toString()), ObjectNode.class);
+      response = getClient().search(s -> s.index(indexName).query(co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.withJson(new StringReader(sourceBuilder.query().toString())))), ObjectNode.class);
     } catch (IOException e) {
       log.error("Failed to get documents by class name{} - {}", indexName, e);
     }
@@ -485,7 +485,7 @@ public class ESSearcher implements Searcher {
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
     SearchResponse<ObjectNode> response = null;
     try {
-      response = getClient().search(s -> s.index(indexName).q(sourceBuilder.toString()), ObjectNode.class);
+      response = getClient().search(s -> s.index(indexName).query(co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.withJson(new StringReader(sourceBuilder.query().toString())))).from(from).size(limit), ObjectNode.class);
     } catch (IOException e) {
       log.error("Failed to get documents {} - {}", indexName, e);
     }
@@ -508,7 +508,7 @@ public class ESSearcher implements Searcher {
     try {
       log.debug("Request /{}/{}: {}", indexName, type, sourceBuilder);
       if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
-      SearchResponse<ObjectNode> response = getClient().search(s -> s.index(indexName).q(sourceBuilder.toString()), ObjectNode.class);
+      SearchResponse<ObjectNode> response = getClient().search(s -> s.index(indexName).query(co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.withJson(new StringReader(sourceBuilder.query().toString())))), ObjectNode.class);
       log.debug("Response /{}/{}: {}", indexName, type, response);
 
       return response.aggregations().entrySet().stream().flatMap(a -> ((Terms) a).getBuckets().stream())
