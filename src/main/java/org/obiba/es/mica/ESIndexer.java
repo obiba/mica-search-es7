@@ -39,6 +39,7 @@ import co.elastic.clients.elasticsearch.core.DeleteRequest;
 import co.elastic.clients.elasticsearch.core.IndexRequest;
 import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
+import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
 import co.elastic.clients.elasticsearch.indices.DeleteIndexRequest;
 import co.elastic.clients.elasticsearch.indices.ElasticsearchIndicesClient;
 import co.elastic.clients.elasticsearch.indices.ExistsRequest;
@@ -133,21 +134,14 @@ public class ESIndexer implements Indexer {
 
     createIndexIfNeeded(indexName);
 
-    List<BulkOperation> bulkOperations = new ArrayList<>();
+    BulkRequest.Builder br = new BulkRequest.Builder();
 
-    persistables.forEach(persistable -> bulkOperations
-      .add(BulkOperation
-        .of(operation -> operation
-          .index(indexRequest -> indexRequest
-            .id(persistable.getId())
-            .document(persistable)
-          )
-        )
-      )
-    );
+    for (Persistable<String> persistable : persistables) {
+      br.operations(op -> op.index(idx -> idx.index(indexName).id(persistable.getId()).document(persistable)));
+    }
 
     try {
-      getClient().bulk(BulkRequest.of(r -> r.operations(bulkOperations)));
+      getClient().bulk(br.build());
     } catch (IOException e) {
       log.error("Failed to bulk index {} - {}", indexName, e);
     }
@@ -163,20 +157,14 @@ public class ESIndexer implements Indexer {
     log.debug("Indexing all indexables for indexName [{}] persistableObjectNumber [{}]", indexName, Iterables.size(indexables));
     createIndexIfNeeded(indexName);
 
-    List<BulkOperation> bulkOperations = new ArrayList<>();
-    indexables.forEach(indexable -> bulkOperations
-      .add(BulkOperation
-        .of(operation -> operation
-          .index(indexRequest -> indexRequest
-            .id(indexable.getId())
-            .document(indexable)
-          )
-        )
-      )
-    );
+    BulkRequest.Builder br = new BulkRequest.Builder();
+
+    for (Indexable indexable: indexables) {
+      br.operations(op -> op.index(idx -> idx.index(indexName).id(indexable.getId()).document(indexable)));
+    }
 
     try {
-      getClient().bulk(BulkRequest.of(r -> r.operations(bulkOperations)));
+      getClient().bulk(br.build());
     } catch (IOException e) {
       log.error("Failed to bulk index {} - {}", indexName, e);
     }
@@ -289,7 +277,7 @@ public class ESIndexer implements Indexer {
     return request;
   }
 
-  private synchronized void createIndexIfNeeded(String indexName) {
+  private synchronized CreateIndexResponse createIndexIfNeeded(String indexName) {
     log.trace("Ensuring index existence for index {}", indexName);
     ElasticsearchIndicesClient indicesAdmin = getClient().indices();
 
@@ -306,12 +294,16 @@ public class ESIndexer implements Indexer {
         .numberOfReplicas(Integer.toString(esSearchService.getNbReplicas()))
         .numberOfShards(Integer.toString(esSearchService.getNbShards())).build();
       try {
-        indicesAdmin.create(CreateIndexRequest.of(r -> r.index(indexName).settings(settings)));
+        CreateIndexResponse createdResponse = indicesAdmin.create(CreateIndexRequest.of(r -> r.index(indexName).settings(settings)));
         esSearchService.getIndexConfigurationListeners().forEach(listener -> listener.onIndexCreated(esSearchService, indexName));
+
+        return createdResponse;
       } catch (IOException e) {
         log.error("Failed to create index index {} - {}", indexName, e);
       }
     }
+
+    return null;
   }
 
   private static class IndexFieldMappingImpl implements IndexFieldMapping {
