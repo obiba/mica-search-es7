@@ -12,22 +12,28 @@ package org.obiba.es.mica.results;
 
 import org.elasticsearch.search.SearchHit;
 import org.obiba.mica.spi.search.Searcher;
-import org.obiba.mica.spi.search.Searcher.DocumentResult;
 
 import co.elastic.clients.elasticsearch.core.search.Hit;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.Map;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
  * {@link SearchHit} wrapper.
  */
 public class ESHitDocumentResult implements Searcher.DocumentResult {
-  private final Hit<DocumentResult> hit;
+  private final Hit<ObjectNode> hit;
+  private final ObjectMapper objectMapper;
 
-  public ESHitDocumentResult(Hit<DocumentResult> hit) {
+  public ESHitDocumentResult(Hit<ObjectNode> hit, ObjectMapper objectMapper) {
     this.hit = hit;
+    this.objectMapper = objectMapper;
   }
 
   @Override
@@ -42,7 +48,12 @@ public class ESHitDocumentResult implements Searcher.DocumentResult {
 
   @Override
   public Map<String, Object> getSource() {
-    return hit.source().getSource();
+    ObjectNode source = hit.source();
+    if (source.isObject()) {
+      return objectMapper.convertValue(source.objectNode(), new TypeReference<Map<String, Object>>() {});
+    } else {
+      return new HashMap<>();
+    }
   }
 
   @Override
@@ -53,7 +64,7 @@ public class ESHitDocumentResult implements Searcher.DocumentResult {
   @Override
   public String getClassName() {
     if (!hasSource()) return null;
-    Object className = hit.source().getSource().get("className");
+    Object className = getSource().get("className");
     return className == null ? null : className.toString();
   }
 }

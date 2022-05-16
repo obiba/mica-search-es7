@@ -10,9 +10,9 @@
 
 package org.obiba.es.mica.support;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
-import org.obiba.mica.spi.search.Searcher;
 
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.json.JsonData;
@@ -21,7 +21,7 @@ import java.util.Map;
 
 final public class ESHitSourceMapHelper {
 
-  public static Map<String, String> flattenMap(Hit<Searcher.DocumentResult> hit) {
+  public static Map<String, String> flattenMap(Hit<ObjectNode> hit) {
     Map<String, JsonData> source = hit.fields();
     Map<String, String> flattenedMap = Maps.newHashMap();
     flattenMap(source, flattenedMap, "");

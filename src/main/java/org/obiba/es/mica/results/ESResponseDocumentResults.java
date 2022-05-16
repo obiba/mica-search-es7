@@ -21,14 +21,19 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 /**
  * {@link SearchResponse} wrapper.
  */
 public class ESResponseDocumentResults implements Searcher.DocumentResults {
-  private final SearchResponse<DocumentResult> response;
+  private final SearchResponse<ObjectNode> response;
+  private final ObjectMapper objectMapper;
 
-  public ESResponseDocumentResults(SearchResponse<DocumentResult> response) {
+  public ESResponseDocumentResults(SearchResponse<ObjectNode> response, ObjectMapper objectMapper) {
     this.response = response;
+    this.objectMapper = objectMapper;
   }
 
   @Override
@@ -39,7 +44,7 @@ public class ESResponseDocumentResults implements Searcher.DocumentResults {
   @Override
   public List<Searcher.DocumentResult> getDocuments() {
     return StreamSupport.stream(response.hits().hits().spliterator(), false)
-        .map(ESHitDocumentResult::new)
+        .map(h -> new ESHitDocumentResult(h, objectMapper))
         .collect(Collectors.toList());
   }
 
