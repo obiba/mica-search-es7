@@ -87,12 +87,7 @@ public class ESSearcher implements Searcher {
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   ESSearcher(ESSearchEngineService esSearchService) {
-    this.esSearchService = esSearchService;
-
-    RequestOptions.Builder builder = RequestOptions.DEFAULT.toBuilder();
-    builder.setHttpAsyncResponseConsumerFactory(
-        new HttpAsyncResponseConsumerFactory
-            .HeapBufferedResponseConsumerFactory(250 * 1024 * 1024));
+    this(esSearchService, 250 * 1024 * 1024);
   }
 
   ESSearcher(ESSearchEngineService esSearchService, int bufferLimitBytes) {
