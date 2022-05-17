@@ -51,9 +51,6 @@ public class ProjectIndexConfiguration extends AbstractIndexConfiguration {
 
   private XContentBuilder createMappingProperties() throws IOException {
     XContentBuilder mapping = XContentFactory.jsonBuilder().startObject();
-    startDynamicTemplate(mapping);
-    dynamicTemplateExcludeFieldFromSearch(mapping, "dataAccessRequestId", "dataAccessRequestId");
-    endDynamicTemplate(mapping);
 
     // properties
     mapping.startObject("properties");
