@@ -598,8 +598,10 @@ public class ESSearcher implements Searcher {
     try {
       co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.withJson(new StringReader(sourceBuilder.query().toString())));
 
+      String capitalizedOrder = order.substring(0, 1).toUpperCase() + order.toLowerCase();
+
       SortOptions sortOption = sort != null ? 
-        new SortOptions.Builder().field(FieldSort.of(s -> s.field(sort).order(order == null ? co.elastic.clients.elasticsearch._types.SortOrder.Asc : co.elastic.clients.elasticsearch._types.SortOrder.valueOf(order.toLowerCase())))).build() :
+        new SortOptions.Builder().field(FieldSort.of(s -> s.field(sort).order(order == null ? co.elastic.clients.elasticsearch._types.SortOrder.Asc : co.elastic.clients.elasticsearch._types.SortOrder.valueOf(capitalizedOrder)))).build() :
         new SortOptions.Builder().score(score -> score.order(co.elastic.clients.elasticsearch._types.SortOrder.Desc)).build();
 
       response = getClient().search(s -> s.index(indexName)
@@ -649,8 +651,10 @@ public class ESSearcher implements Searcher {
     try {
       co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.withJson(new StringReader(sourceBuilder.query().toString())));
 
+      String capitalizedOrder = order.substring(0, 1).toUpperCase() + order.toLowerCase();
+
       SortOptions sortOption = sort != null ? 
-        new SortOptions.Builder().field(FieldSort.of(s -> s.field(sort).order(order == null ? co.elastic.clients.elasticsearch._types.SortOrder.Asc : co.elastic.clients.elasticsearch._types.SortOrder.valueOf(order.toLowerCase())))).build() :
+        new SortOptions.Builder().field(FieldSort.of(s -> s.field(sort).order(order == null ? co.elastic.clients.elasticsearch._types.SortOrder.Asc : co.elastic.clients.elasticsearch._types.SortOrder.valueOf(capitalizedOrder)))).build() :
         new SortOptions.Builder().score(score -> score.order(co.elastic.clients.elasticsearch._types.SortOrder.Desc)).build();
 
       response = getClient().search(s -> s.index(indexName)
