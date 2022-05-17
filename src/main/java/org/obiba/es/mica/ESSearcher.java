@@ -54,7 +54,6 @@ import co.elastic.clients.elasticsearch._types.SortOptions;
 import co.elastic.clients.elasticsearch._types.aggregations.Aggregation;
 import co.elastic.clients.elasticsearch._types.aggregations.GlobalAggregation;
 import co.elastic.clients.elasticsearch._types.aggregations.TermsAggregation;
-import co.elastic.clients.elasticsearch._types.aggregations.Aggregation.Builder.ContainerBuilder;
 import co.elastic.clients.elasticsearch.core.CountResponse;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.SourceConfig;
@@ -688,7 +687,7 @@ public class ESSearcher implements Searcher {
 
       co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.withJson(new StringReader(sourceBuilder.query().toString())));
 
-      Aggregation aggregation = new Aggregation.Builder().terms(TermsAggregation.of(agg -> agg.field(field).size(Short.toUnsignedInt(Short.MAX_VALUE)))).build();
+      Aggregation aggregation = new Aggregation.Builder().terms(TermsAggregation.of(agg -> agg.field(field.replaceAll("\\.", "-")).size(Short.toUnsignedInt(Short.MAX_VALUE)))).build();
 
       SearchResponse<ObjectNode> response = getClient().search(s -> s.index(indexName)
         .query(esQuery)
