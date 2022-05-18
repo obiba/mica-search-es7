@@ -84,7 +84,7 @@ public class ESSearcher implements Searcher {
 
   private final AggregationParser aggregationParser = new AggregationParser();
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper;
 
   ESSearcher(ESSearchEngineService esSearchService) {
     this(esSearchService, 250 * 1024 * 1024);
@@ -92,6 +92,7 @@ public class ESSearcher implements Searcher {
 
   ESSearcher(ESSearchEngineService esSearchService, int bufferLimitBytes) {
     this.esSearchService = esSearchService;
+    objectMapper = esSearchService.getObjectMapper();
 
     RequestOptions.Builder builder = RequestOptions.DEFAULT.toBuilder();
     builder.setHttpAsyncResponseConsumerFactory(
@@ -143,7 +144,7 @@ public class ESSearcher implements Searcher {
 
     if (!query.isEmpty()) ((ESQuery) query).getSortBuilders().forEach(sourceBuilder::sort);
 
-    appendAggregations(sourceBuilder, query.getAggregationBuckets(), aggregationProperties);  
+    appendAggregations(sourceBuilder, query.getAggregationBuckets(), aggregationProperties);
 
     log.debug("Request /{}/{}", indexName, type);
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
@@ -162,7 +163,7 @@ public class ESSearcher implements Searcher {
     Map<String, Aggregation> aggregations = new HashMap<>();
     aggregations.put(AGG_TOTAL_COUNT, globalAggregation);
 
-    for (AbstractAggregationBuilder aggBuilder : getAggregations(query.getAggregationBuckets(), aggregationProperties)) {      
+    for (AbstractAggregationBuilder aggBuilder : getAggregations(query.getAggregationBuckets(), aggregationProperties)) {
       aggregations.put(aggBuilder.getName(), new Aggregation.Builder().terms(agg -> agg.withJson(new StringReader(aggBuilder.toString()))).build());
     }
 
@@ -174,7 +175,7 @@ public class ESSearcher implements Searcher {
       .size(scope == DETAIL ? query.getSize() : 0)
       .trackTotalHits(trackHits)
       .source(sourceConfigBuilder.build())
-      .aggregations(aggregations), 
+      .aggregations(aggregations),
     ObjectNode.class);
 
     log.debug("Response /{}/{}", indexName, type);
@@ -204,14 +205,14 @@ public class ESSearcher implements Searcher {
     SearchResponse<ObjectNode> response = null;
 
     try {
-      TrackHits trackHits = new TrackHits.Builder().enabled(true).build(); 
+      TrackHits trackHits = new TrackHits.Builder().enabled(true).build();
       SourceConfig sourceConfig = new SourceConfig.Builder().fetch(false).build();
       Aggregation globalAggregation = new Aggregation.Builder().global(GlobalAggregation.of(agg -> agg.name(AGG_TOTAL_COUNT))).build();
 
       Map<String, Aggregation> aggregations = new HashMap<>();
       aggregations.put(AGG_TOTAL_COUNT, globalAggregation);
 
-      for (AbstractAggregationBuilder aggBuilder : getAggregations(query.getAggregationBuckets(), aggregationProperties)) {      
+      for (AbstractAggregationBuilder aggBuilder : getAggregations(query.getAggregationBuckets(), aggregationProperties)) {
         aggregations.put(aggBuilder.getName(), new Aggregation.Builder().terms(agg -> agg.withJson(new StringReader(aggBuilder.toString()))).build());
       }
 
@@ -223,7 +224,7 @@ public class ESSearcher implements Searcher {
         .size(0)
         .trackTotalHits(trackHits)
         .source(sourceConfig)
-        .aggregations(aggregations), 
+        .aggregations(aggregations),
       ObjectNode.class);
     } catch (IOException e) {
       log.error("Failed to cover {} - {}", indexName, e);
@@ -257,7 +258,7 @@ public class ESSearcher implements Searcher {
     SearchResponse<ObjectNode> response = null;
 
     try {
-      TrackHits trackHits = new TrackHits.Builder().enabled(true).build(); 
+      TrackHits trackHits = new TrackHits.Builder().enabled(true).build();
       SourceConfig sourceConfig = new SourceConfig.Builder().fetch(false).build();
       Aggregation globalAggregation = new Aggregation.Builder().global(GlobalAggregation.of(agg -> agg.name(AGG_TOTAL_COUNT))).build();
 
@@ -276,7 +277,7 @@ public class ESSearcher implements Searcher {
         .size(0)
         .trackTotalHits(trackHits)
         .source(sourceConfig)
-        .aggregations(aggregations), 
+        .aggregations(aggregations),
       ObjectNode.class);
     } catch (IOException e) {
       log.error("Failed to cover {} - {}", indexName, e);
@@ -308,7 +309,7 @@ public class ESSearcher implements Searcher {
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
     SearchResponse<ObjectNode> response = null;
     try {
-      TrackHits trackHits = new TrackHits.Builder().enabled(true).build(); 
+      TrackHits trackHits = new TrackHits.Builder().enabled(true).build();
       SourceConfig sourceConfig = new SourceConfig.Builder().fetch(false).build();
       Aggregation globalAggregation = new Aggregation.Builder().global(GlobalAggregation.of(agg -> agg.name(AGG_TOTAL_COUNT))).build();
 
@@ -327,7 +328,7 @@ public class ESSearcher implements Searcher {
         .size(0)
         .trackTotalHits(trackHits)
         .source(sourceConfig)
-        .aggregations(aggregations), 
+        .aggregations(aggregations),
       ObjectNode.class);
     } catch (IOException e) {
       log.error("Failed to aggregate {} - {}", indexName, e);
@@ -371,13 +372,13 @@ public class ESSearcher implements Searcher {
         }
       } else {
         sortOptions.add(new SortOptions.Builder().score(score -> score.order(co.elastic.clients.elasticsearch._types.SortOrder.Desc)).build());
-      }     
+      }
 
       response = getClient().search(s -> s.index(indexName)
         .query(esQuery)
         .from(query.getFrom())
         .size(query.getSize())
-        .sort(sortOptions), 
+        .sort(sortOptions),
       ObjectNode.class);
     } catch (IOException e) {
       log.error("Failed to find {} - {}", indexName, e);
@@ -450,7 +451,7 @@ public class ESSearcher implements Searcher {
         .query(esQuery)
         .from(0)
         .size(0)
-        .aggregations(aggregations), 
+        .aggregations(aggregations),
       ObjectNode.class);
     } catch (IOException e) {
       log.error("Failed to count {} - {}", indexName, e);
@@ -491,7 +492,7 @@ public class ESSearcher implements Searcher {
         .from(0)
         .size(limit)
         .source(sourceConfig)
-        .sort(sortOption), 
+        .sort(sortOption),
       ObjectNode.class);
 
       response.hits().hits().forEach(hit -> {
@@ -526,7 +527,7 @@ public class ESSearcher implements Searcher {
       co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.withJson(new StringReader(sourceBuilder.query().toString())));
 
       response = getClient().search(s -> s.index(indexName)
-        .query(esQuery), 
+        .query(esQuery),
       ObjectNode.class);
     } catch (IOException e) {
       log.error("Failed to get document by ID {} - {}", indexName, e);
@@ -553,7 +554,7 @@ public class ESSearcher implements Searcher {
       co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.withJson(new StringReader(sourceBuilder.query().toString())));
 
       response = getClient().search(s -> s.index(indexName)
-        .query(esQuery), 
+        .query(esQuery),
       ObjectNode.class);
     } catch (IOException e) {
       log.error("Failed to get document by class name {} - {}", indexName, e);
@@ -594,7 +595,7 @@ public class ESSearcher implements Searcher {
 
       String capitalizedOrder = order.substring(0, 1).toUpperCase() + order.substring(1).toLowerCase();
 
-      SortOptions sortOption = sort != null ? 
+      SortOptions sortOption = sort != null ?
         new SortOptions.Builder().field(FieldSort.of(s -> s.field(sort).order(order == null ? co.elastic.clients.elasticsearch._types.SortOrder.Asc : co.elastic.clients.elasticsearch._types.SortOrder.valueOf(capitalizedOrder)))).build() :
         new SortOptions.Builder().score(score -> score.order(co.elastic.clients.elasticsearch._types.SortOrder.Desc)).build();
 
@@ -602,7 +603,7 @@ public class ESSearcher implements Searcher {
         .query(esQuery)
         .from(from)
         .size(limit)
-        .sort(sortOption), 
+        .sort(sortOption),
       ObjectNode.class);
     } catch (IOException e) {
       log.error("Failed to get documents by class name{} - {}", indexName, e);
@@ -647,7 +648,7 @@ public class ESSearcher implements Searcher {
 
       String capitalizedOrder = order.substring(0, 1).toUpperCase() + order.substring(1).toLowerCase();
 
-      SortOptions sortOption = sort != null ? 
+      SortOptions sortOption = sort != null ?
         new SortOptions.Builder().field(FieldSort.of(s -> s.field(sort).order(order == null ? co.elastic.clients.elasticsearch._types.SortOrder.Asc : co.elastic.clients.elasticsearch._types.SortOrder.valueOf(capitalizedOrder)))).build() :
         new SortOptions.Builder().score(score -> score.order(co.elastic.clients.elasticsearch._types.SortOrder.Desc)).build();
 
@@ -655,7 +656,7 @@ public class ESSearcher implements Searcher {
         .query(esQuery)
         .from(from)
         .size(limit)
-        .sort(sortOption), 
+        .sort(sortOption),
       ObjectNode.class);
     } catch (IOException e) {
       log.error("Failed to get documents {} - {}", indexName, e);
@@ -688,7 +689,7 @@ public class ESSearcher implements Searcher {
         .query(esQuery)
         .from(0)
         .size(0)
-        .aggregations(field.replaceAll("\\.", "-"), aggregation), 
+        .aggregations(field.replaceAll("\\.", "-"), aggregation),
       ObjectNode.class);
 
       log.debug("Response /{}/{}: {}", indexName, type, response);
