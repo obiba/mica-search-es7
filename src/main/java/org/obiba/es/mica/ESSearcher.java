@@ -54,6 +54,12 @@ import co.elastic.clients.elasticsearch._types.SortOptions;
 import co.elastic.clients.elasticsearch._types.aggregations.Aggregation;
 import co.elastic.clients.elasticsearch._types.aggregations.GlobalAggregation;
 import co.elastic.clients.elasticsearch._types.aggregations.TermsAggregation;
+import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.ExistsQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.IdsQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.PrefixQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.QueryStringQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery;
 import co.elastic.clients.elasticsearch.core.CountResponse;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.SourceConfig;
@@ -123,7 +129,7 @@ public class ESSearcher implements Searcher {
   @Override
   public DocumentResults query(String indexName, String type, Query query, QueryScope scope, List<String> mandatorySourceFields, Properties aggregationProperties, @Nullable IdFilter idFilter) throws IOException {
 
-    QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
+    QueryBuilder filter = null ; // idFilter == null ? null : getIdQueryBuilder(idFilter);
     QueryBuilder queryBuilder = query.isEmpty() || !query.hasQueryBuilder() ? QueryBuilders.matchAllQuery() : ((ESQuery) query).getQueryBuilder();
 
     SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
@@ -187,7 +193,7 @@ public class ESSearcher implements Searcher {
 
   @Override
   public DocumentResults cover(String indexName, String type, Query query, Properties aggregationProperties, @Nullable IdFilter idFilter) {
-    QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
+    QueryBuilder filter = null; // TODO idFilter == null ? null : getIdQueryBuilder(idFilter);
     QueryBuilder queryBuilder = query.isEmpty() || !query.hasQueryBuilder() ? QueryBuilders.matchAllQuery() : ((ESQuery) query).getQueryBuilder();
 
     SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
@@ -239,7 +245,7 @@ public class ESSearcher implements Searcher {
 
   @Override
   public DocumentResults cover(String indexName, String type, Query query, Properties aggregationProperties, Map<String, Properties> subAggregationProperties, @Nullable IdFilter idFilter) {
-    QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
+    QueryBuilder filter = null; // TODO idFilter == null ? null : getIdQueryBuilder(idFilter);
     QueryBuilder queryBuilder = query.isEmpty() || !query.hasQueryBuilder() ? QueryBuilders.matchAllQuery() : ((ESQuery) query).getQueryBuilder();
 
 
@@ -292,7 +298,7 @@ public class ESSearcher implements Searcher {
 
   @Override
   public DocumentResults aggregate(String indexName, String type, Query query, Properties aggregationProperties, IdFilter idFilter) {
-    QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
+    QueryBuilder filter = null; // TODO idFilter == null ? null : getIdQueryBuilder(idFilter);
     QueryBuilder queryBuilder = query.isEmpty() || !query.hasQueryBuilder() ? QueryBuilders.matchAllQuery() : ((ESQuery) query).getQueryBuilder();
 
     SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
@@ -343,7 +349,7 @@ public class ESSearcher implements Searcher {
   @Override
   public DocumentResults find(String indexName, String type, String rql, IdFilter idFilter) {
 
-    QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
+    QueryBuilder filter = null; // TODO idFilter == null ? null : getIdQueryBuilder(idFilter);
 
     RQLQuery query = new RQLQuery(rql);
     QueryBuilder queryBuilder = query.isEmpty() || !query.hasQueryBuilder() ? QueryBuilders.matchAllQuery() : query.getQueryBuilder();
@@ -390,7 +396,7 @@ public class ESSearcher implements Searcher {
 
   @Override
   public DocumentResults count(String indexName, String type, String rql, IdFilter idFilter) {
-    QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
+    QueryBuilder filter = null; // TODO idFilter == null ? null : getIdQueryBuilder(idFilter);
     RQLQuery query = new RQLQuery(rql);
 
     List<String> aggregations = query.getAggregations();
@@ -424,7 +430,7 @@ public class ESSearcher implements Searcher {
    * @return
    */
   private DocumentResults countWithAggregations(String indexName, String type, String rql, IdFilter idFilter) {
-    QueryBuilder filter = idFilter == null ? null : getIdQueryBuilder(idFilter);
+    QueryBuilder filter = null; // TODO idFilter == null ? null : getIdQueryBuilder(idFilter);
     RQLQuery query = new RQLQuery(rql);
     QueryBuilder queryBuilder = query.isEmpty() || !query.hasQueryBuilder() ? QueryBuilders.matchAllQuery() : query.getQueryBuilder();
 
@@ -575,7 +581,7 @@ public class ESSearcher implements Searcher {
       query = QueryBuilders.boolQuery().must(query).must(QueryBuilders.queryStringQuery(queryString));
     }
 
-    QueryBuilder postFilter = getPostFilter(termFilter, idFilter);
+    QueryBuilder postFilter = null; // TODO getPostFilter(termFilter, idFilter);
 
     SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
         .query(postFilter == null ? query : QueryBuilders.boolQuery().must(query).must(postFilter)) //
@@ -615,45 +621,34 @@ public class ESSearcher implements Searcher {
 
   @Override
   public DocumentResults getDocuments(String indexName, String type, int from, int limit, @Nullable String sort, @Nullable String order, @Nullable String queryString, @Nullable TermFilter termFilter, @Nullable IdFilter idFilter, @Nullable List<String> fields, @Nullable List<String> excludedFields) {
-    QueryStringQueryBuilder query = queryString != null ? QueryBuilders.queryStringQuery(queryString) : null;
+    QueryStringQuery.Builder query = queryString != null ? new QueryStringQuery.Builder().query(queryString) : null;
+    if (query != null && fields != null) query.fields(fields);
+    co.elastic.clients.elasticsearch._types.query_dsl.Query postFilter = getPostFilter(termFilter, idFilter);
 
-    if (query != null && fields != null) fields.forEach(query::field);
-
-    QueryBuilder postFilter = getPostFilter(termFilter, idFilter);
-
-    QueryBuilder execQuery = postFilter == null ? query : query == null ? postFilter : QueryBuilders.boolQuery().must(query).filter(postFilter);
+    co.elastic.clients.elasticsearch._types.query_dsl.Query execQuery = postFilter == null ? query.build()._toQuery() : query == null ? postFilter : BoolQuery.of(q -> q.must(query.build()._toQuery()).filter(postFilter))._toQuery();
 
     if (excludedFields != null) {
-      BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
-      excludedFields.forEach(f -> boolQueryBuilder.mustNot(
-          QueryBuilders.boolQuery().must(QueryBuilders.termQuery(f, "true")).must(QueryBuilders.existsQuery(f))));
-      execQuery = boolQueryBuilder.must(execQuery);
-    }
+      BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
 
-    SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
-        .query(execQuery) //
-        .from(from) //
-        .size(limit);
+      excludedFields.forEach(f -> boolQueryBuilder.mustNot(BoolQuery.of(q -> q.must(TermQuery.of(termQ -> termQ.field(f).value("true"))._toQuery(), ExistsQuery.of(existQ -> existQ.field(f))._toQuery()))._toQuery()));
 
-    if (sort != null) {
-      sourceBuilder.sort(
-          SortBuilders.fieldSort(sort).order(order == null ? SortOrder.ASC : SortOrder.valueOf(order.toUpperCase())));
+      execQuery = boolQueryBuilder.must(execQuery).build()._toQuery();
     }
 
     log.debug("Request /{}/{}", indexName, type);
-    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, execQuery.toString());
     SearchResponse<ObjectNode> response = null;
     try {
-      co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.withJson(new StringReader(sourceBuilder.query().toString())));
-
       String capitalizedOrder = order.substring(0, 1).toUpperCase() + order.substring(1).toLowerCase();
 
       SortOptions sortOption = sort != null ?
         new SortOptions.Builder().field(FieldSort.of(s -> s.field(sort).order(order == null ? co.elastic.clients.elasticsearch._types.SortOrder.Asc : co.elastic.clients.elasticsearch._types.SortOrder.valueOf(capitalizedOrder)))).build() :
         new SortOptions.Builder().score(score -> score.order(co.elastic.clients.elasticsearch._types.SortOrder.Desc)).build();
 
+      co.elastic.clients.elasticsearch._types.query_dsl.Query finalQuery = execQuery;
+
       response = getClient().search(s -> s.index(indexName)
-        .query(esQuery)
+        .query(finalQuery)
         .from(from)
         .size(limit)
         .sort(sortOption),
@@ -706,54 +701,52 @@ public class ESSearcher implements Searcher {
   // Private methods
   //
 
-  private QueryBuilder getPostFilter(TermFilter termFilter, IdFilter idFilter) {
-    QueryBuilder filter = null;
+  private co.elastic.clients.elasticsearch._types.query_dsl.Query getPostFilter(TermFilter termFilter, IdFilter idFilter) {
+    co.elastic.clients.elasticsearch._types.query_dsl.Query filter = null;
 
-    if (idFilter != null)
+    if (idFilter != null) {
       filter = getIdQueryBuilder(idFilter);
+    }
 
     if (termFilter != null && termFilter.getValue() != null) {
-      QueryBuilder filterBy = QueryBuilders.termQuery(termFilter.getField(), termFilter.getValue());
-      filter = filter == null ? filterBy : QueryBuilders.boolQuery().must(filter).must(filterBy);
+      TermQuery filterBy = TermQuery.of(q -> q.field(termFilter.getField()).value(termFilter.getValue()));
+      filter = filter == null ? filterBy._toQuery() : null;
     }
 
     return filter;
   }
 
-  private QueryBuilder getIdQueryBuilder(IdFilter idFilter) {
+  private co.elastic.clients.elasticsearch._types.query_dsl.Query getIdQueryBuilder(IdFilter idFilter) {
     if (idFilter instanceof PathFilter) return getPathQueryBuilder((PathFilter) idFilter);
-    QueryBuilder filter;
+
     Collection<String> ids = idFilter.getValues();
-    if (ids.isEmpty())
-      filter = QueryBuilders.boolQuery().mustNot(QueryBuilders.existsQuery("id"));
-    else if ("id".equals(idFilter.getField()))
-      filter = QueryBuilders.idsQuery().addIds(ids.toArray(new String[]{}));
-    else {
-      BoolQueryBuilder orFilter = QueryBuilders.boolQuery();
-      ids.forEach(id -> orFilter.should(QueryBuilders.termQuery(idFilter.getField(), id)));
-      filter = orFilter;
+
+    if (ids.isEmpty()) {
+      return BoolQuery.of(q -> q.mustNot(ExistsQuery.of(exQ -> exQ.field("id"))._toQuery()))._toQuery();
+    } else if ("id".equals(idFilter.getField())) {
+      return IdsQuery.of(q -> q.values(ids.stream().collect(Collectors.toList())))._toQuery();
+    } else {
+      List<co.elastic.clients.elasticsearch._types.query_dsl.Query> termQueries = ids.stream().map(id -> TermQuery.of(q -> q.field(idFilter.getField()).value(id))._toQuery()).collect(Collectors.toList());
+
       // FIXME filter = QueryBuilders.termsQuery(idFilter.getField(), ids);
+
+      return BoolQuery.of(q -> q.should(termQueries))._toQuery();
     }
-    return filter;
   }
 
-  private QueryBuilder getPathQueryBuilder(PathFilter pathFilter) {
-    List<QueryBuilder> includes = pathFilter.getValues().stream()
-        .map(path -> path.endsWith("/") ? QueryBuilders.prefixQuery(pathFilter.getField(), path)
-            : QueryBuilders.termQuery(pathFilter.getField(), path))
-        .collect(Collectors.toList());
-    List<QueryBuilder> excludes = pathFilter.getExcludedValues().stream()
-        .map(path -> QueryBuilders.prefixQuery(pathFilter.getField(), path))
-        .collect(Collectors.toList());
+  private co.elastic.clients.elasticsearch._types.query_dsl.Query getPathQueryBuilder(PathFilter pathFilter) {
+    List<co.elastic.clients.elasticsearch._types.query_dsl.Query> includes = pathFilter.getValues().stream().map(path -> path.endsWith("/") ? PrefixQuery.of(q -> q.field(pathFilter.getField()).value(path))._toQuery() : TermQuery.of(q -> q.field(pathFilter.getField()).value(path))._toQuery()).collect(Collectors.toList());
 
-    BoolQueryBuilder includedFilter = QueryBuilders.boolQuery();
+    List<co.elastic.clients.elasticsearch._types.query_dsl.Query> excludes = pathFilter.getExcludedValues().stream().map(path -> PrefixQuery.of(q -> q.field(pathFilter.getField()).value(path))._toQuery()).collect(Collectors.toList());
+
+    BoolQuery.Builder includedFilter = new BoolQuery.Builder();
     includes.forEach(includedFilter::should);
-    if (excludes.isEmpty()) return includedFilter;
+    if (excludes.isEmpty()) return includedFilter.build()._toQuery();
 
-    BoolQueryBuilder excludedFilter = QueryBuilders.boolQuery();
+    BoolQuery.Builder excludedFilter = new BoolQuery.Builder();
     excludes.forEach(excludedFilter::should);
 
-    return QueryBuilders.boolQuery().must(includedFilter).mustNot(excludedFilter);
+    return BoolQuery.of(q -> q.must(includedFilter.build()._toQuery(), excludedFilter.build()._toQuery()))._toQuery();
   }
 
   private void appendAggregations(SearchSourceBuilder requestBuilder, List<String> aggregationBuckets, Properties aggregationProperties) {
