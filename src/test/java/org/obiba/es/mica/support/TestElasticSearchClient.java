@@ -38,12 +38,12 @@ public class TestElasticSearchClient {
     FileUtil.delete(dataDirectory.toFile());
   }
 
-  public SearchRequestBuilder preSearchRequest(QueryBuilder queryBuilder) {
-    return client.prepareSearch("test_index") //
-      .setTypes("test_type") //
-      .setSearchType(SearchType.DFS_QUERY_THEN_FETCH) //
-      .setQuery(queryBuilder);
-  }
+  // public SearchRequestBuilder preSearchRequest(QueryBuilder queryBuilder) {
+  //   return client.prepareSearch("test_index") //
+  //     .setTypes("test_type") //
+  //     .setSearchType(SearchType.DFS_QUERY_THEN_FETCH) //
+  //     .setQuery(queryBuilder);
+  // }
 
 //  private static Node newNode(String dataDirectory) {
 //    String nodeName = TestElasticSearchClient.class.getName();
