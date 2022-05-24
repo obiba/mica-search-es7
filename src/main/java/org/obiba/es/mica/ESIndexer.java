@@ -124,7 +124,7 @@ public class ESIndexer implements Indexer {
     BulkRequest.Builder br = new BulkRequest.Builder();
 
     for (Persistable<String> persistable : persistables) {
-      br.operations(op -> op.index(idx -> idx.index(indexName).id(persistable.getId()).document(persistable)));
+      br.operations(op -> op.index(idx -> idx.index(indexName).id(persistable.getId()).document(toJson(persistable))));
     }
 
     try {
@@ -147,7 +147,7 @@ public class ESIndexer implements Indexer {
     BulkRequest.Builder br = new BulkRequest.Builder();
 
     for (Indexable indexable: indexables) {
-      br.operations(op -> op.index(idx -> idx.index(indexName).id(indexable.getId()).document(indexable)));
+      br.operations(op -> op.index(idx -> idx.index(indexName).id(indexable.getId()).document(toJson(indexable))));
     }
 
     try {

@@ -213,7 +213,9 @@ public class ESSearchEngineService implements SearchEngineService {
       .toArray(HttpHost[]::new);
 
       RestClient restClient = RestClient.builder(httpHosts).build();
-      RestClientTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper());
+
+      JacksonJsonpMapper jacksonJsonpMapper = new JacksonJsonpMapper();
+      RestClientTransport transport = new RestClientTransport(restClient, jacksonJsonpMapper);
 
     client = new ElasticsearchClient(transport);
   }
