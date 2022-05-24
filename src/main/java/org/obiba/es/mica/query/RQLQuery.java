@@ -17,7 +17,6 @@ import com.google.common.collect.Maps;
 import net.jazdw.rql.parser.ASTNode;
 import net.jazdw.rql.parser.RQLParser;
 import net.jazdw.rql.parser.SimpleASTVisitor;
-import org.elasticsearch.index.query.*;
 import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
@@ -29,6 +28,19 @@ import org.obiba.mica.spi.search.support.AttributeKey;
 import org.obiba.opal.core.domain.taxonomy.Taxonomy;
 import org.obiba.opal.core.domain.taxonomy.TaxonomyEntity;
 import org.obiba.opal.core.domain.taxonomy.Vocabulary;
+
+import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.ExistsQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.MatchAllQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch._types.query_dsl.QueryStringQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.RangeQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.TermsQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.TermsQueryField;
+import co.elastic.clients.elasticsearch._types.query_dsl.WildcardQuery;
+import co.elastic.clients.json.JsonData;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -46,7 +58,7 @@ public class RQLQuery implements ESQuery {
 
   private ASTNode node;
 
-  private QueryBuilder queryBuilder;
+  private Query queryBuilder;
 
   private List<SortBuilder> sortBuilders = Lists.newArrayList();
 
@@ -60,7 +72,7 @@ public class RQLQuery implements ESQuery {
 
   private final Map<String, Map<String, List<String>>> taxonomyTermsMap = Maps.newHashMap();
 
-  private QueryBuilder filterQuery;
+  private Query filterQuery;
 
   public RQLQuery(String rql) {
     this(new RQLParser(new RQLConverter()).parse(rql), new RQLFieldResolver(null, Collections.emptyList(), "en",
@@ -138,7 +150,7 @@ public class RQLQuery implements ESQuery {
   }
 
   @Override
-  public QueryBuilder getQueryBuilder() {
+  public Query getQueryBuilder() {
     return queryBuilder;
   }
 
@@ -260,7 +272,7 @@ public class RQLQuery implements ESQuery {
     if (filterQuery != null) {
       queryBuilder = queryBuilder == null
           ? filterQuery
-          : QueryBuilders.boolQuery().must(filterQuery).must(queryBuilder);
+          : BoolQuery.of(q -> q.must(filterQuery, queryBuilder))._toQuery();
       filterQuery = null;
     }
   }
@@ -300,13 +312,13 @@ public class RQLQuery implements ESQuery {
 
   }
 
-  private class RQLQueryBuilder extends RQLBuilder<QueryBuilder> {
+  private class RQLQueryBuilder extends RQLBuilder<Query> {
     RQLQueryBuilder(RQLFieldResolver rqlFieldResolver) {
       super(rqlFieldResolver);
     }
 
     @Override
-    public QueryBuilder visit(ASTNode node) {
+    public Query visit(ASTNode node) {
       try {
         RQLNode type = RQLNode.getType(node.getName());
         switch (type) {
@@ -356,35 +368,37 @@ public class RQLQuery implements ESQuery {
       }
       return null;
     }
-    private QueryBuilder visitAnd(ASTNode node) {
-      BoolQueryBuilder builder = QueryBuilders.boolQuery();
+
+    private Query visitAnd(ASTNode node) {
+      BoolQuery.Builder builder = new BoolQuery.Builder();
       for (int i = 0; i < node.getArgumentsSize(); i++) {
         builder.must(visit((ASTNode) node.getArgument(i)));
       }
-      return builder;
+      return builder.build()._toQuery();
     }
 
-    private QueryBuilder visitNand(ASTNode node) {
-      return QueryBuilders.boolQuery().mustNot(visitAnd(node));
+    private Query visitNand(ASTNode node) {
+      return BoolQuery.of(q -> q.mustNot(visitAnd(node)))._toQuery();
     }
 
-    private QueryBuilder visitOr(ASTNode node) {
-      BoolQueryBuilder builder = QueryBuilders.boolQuery();
+    private Query visitOr(ASTNode node) {
+      BoolQuery.Builder builder = new BoolQuery.Builder();
       for (int i = 0; i < node.getArgumentsSize(); i++) {
         builder.should(visit((ASTNode) node.getArgument(i)));
       }
-      return builder;
+      return builder.build()._toQuery();
     }
 
-    private QueryBuilder visitNor(ASTNode node) {
-      return QueryBuilders.boolQuery().mustNot(visitOr(node));
+    private Query visitNor(ASTNode node) {
+      return BoolQuery.of(q -> q.mustNot(visitOr(node)))._toQuery();
     }
 
-    private QueryBuilder visitContains(ASTNode node) {
+    private Query visitContains(ASTNode node) {
       // if there is only one argument, all the terms of this argument are to be matched on the default fields
       if (node.getArgumentsSize() == 1) {
-        return QueryBuilders.queryStringQuery(toStringQuery(node.getArgument(0), " AND "));
+        return QueryStringQuery.of(q -> q.query(toStringQuery(node.getArgument(0), " AND ")))._toQuery();
       }
+
       RQLFieldResolver.FieldData data = resolveField(node.getArgument(0).toString());
       String field = data.getField();
       Object args = node.getArgument(1);
@@ -392,12 +406,13 @@ public class RQLQuery implements ESQuery {
       terms = args instanceof Collection ? ((Collection<Object>) args).stream().map(Object::toString)
           .collect(Collectors.toList()) : Collections.singleton(args.toString());
       visitField(field, terms);
-      BoolQueryBuilder builder = QueryBuilders.boolQuery();
-      terms.forEach(t -> builder.must(QueryBuilders.termQuery(field, t)));
-      return builder;
+
+      BoolQuery.Builder builder = new BoolQuery.Builder();
+      terms.forEach(t -> builder.must(TermQuery.of(q -> q.field(field).value(t))._toQuery()));
+      return builder.build()._toQuery();
     }
 
-    private QueryBuilder visitIn(ASTNode node) {
+    private Query visitIn(ASTNode node) {
       RQLFieldResolver.FieldData data = resolveField(node.getArgument(0).toString());
       String field = data.getField();
       if (data.isRange()) {
@@ -409,18 +424,26 @@ public class RQLQuery implements ESQuery {
           .collect(Collectors.toList()) : Collections.singleton(terms.toString()));
       if (terms instanceof Collection) {
         Collection termList = (Collection<?>) terms;
-        return QueryBuilders.termsQuery(field, termList);
+
+        List<FieldValue> fieldValues = new ArrayList<>();
+        ((Collection<?>) terms).forEach(t -> fieldValues.add(FieldValue.of(t.toString())));
+        
+        return TermsQuery.of(q -> q.field(field).terms(TermsQueryField.of(tqf -> tqf.value(fieldValues))))._toQuery();
       }
-      return QueryBuilders.termsQuery(field, terms);
+
+      List<FieldValue> fieldValues = new ArrayList<>();
+      fieldValues.add(FieldValue.of(terms.toString()));
+      return TermsQuery.of(q -> q.field(field).terms(TermsQueryField.of(tqf -> tqf.value(fieldValues))))._toQuery();
     }
 
-    private QueryBuilder visitInRangeInternal(RQLFieldResolver.FieldData data, Object rangesArgument) {
+    private Query visitInRangeInternal(RQLFieldResolver.FieldData data, Object rangesArgument) {
       Collection<String> ranges = rangesArgument instanceof Collection ? ((Collection<Object>) rangesArgument).stream()
           .map(Object::toString).collect(Collectors.toList()) : Collections.singleton(rangesArgument.toString());
 
-      BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+      BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
       ranges.forEach(range -> {
-        RangeQueryBuilder builder = QueryBuilders.rangeQuery(data.getField());
+        RangeQuery.Builder builder = new RangeQuery.Builder().field(data.getField());
+
         String[] values = range.split(":");
         if (values.length < 2) {
           throw new IllegalArgumentException("Invalid range format: " + range);
@@ -428,124 +451,151 @@ public class RQLQuery implements ESQuery {
 
         if (!"*".equals(values[0]) || !"*".equals(values[1])) {
           if ("*".equals(values[0])) {
-            builder.lt(Double.valueOf(values[1]));
+            
+            builder.lt(JsonData.of(values[1]));
           } else if ("*".equals(values[1])) {
-            builder.gte(Double.valueOf(values[0]));
+            builder.gte(JsonData.of(values[0]));
           } else {
-            builder.gte(Double.valueOf(values[0]));
-            builder.lt(Double.valueOf(values[1]));
+            builder.gte(JsonData.of(values[0]));
+            builder.lt(JsonData.of(values[1]));
           }
         }
 
-        boolQueryBuilder.should(builder);
+        boolQueryBuilder.should(builder.build()._toQuery());
       });
 
-      return boolQueryBuilder;
+      return boolQueryBuilder.build()._toQuery();
     }
 
-    private QueryBuilder visitOut(ASTNode node) {
+    private Query visitOut(ASTNode node) {
       String field = resolveField(node.getArgument(0).toString()).getField();
       Object terms = node.getArgument(1);
       if (terms instanceof Collection) {
-        Collection termList = (Collection) terms;
-        return QueryBuilders.boolQuery().mustNot(QueryBuilders.termsQuery(field, termList));
+        List<FieldValue> fieldValues = new ArrayList<>();
+        ((Collection<?>) terms).forEach(t -> fieldValues.add(FieldValue.of(t.toString())));
+
+        return BoolQuery.of(q -> q.mustNot(TermsQuery.of(tq -> tq.field(field).terms(TermsQueryField.of(tqf -> tqf.value(fieldValues))))._toQuery()))._toQuery();
       }
-      return QueryBuilders.boolQuery().mustNot(QueryBuilders.termsQuery(field, terms));
+
+      List<FieldValue> fieldValues = new ArrayList<>();
+      fieldValues.add(FieldValue.of(terms.toString()));
+
+      return BoolQuery.of(q -> q.mustNot(TermsQuery.of(tq -> tq.field(field).terms(TermsQueryField.of(tqf -> tqf.value(fieldValues))))._toQuery()))._toQuery();
     }
 
-    private QueryBuilder visitNot(ASTNode node) {
-      QueryBuilder expr = visit((ASTNode) node.getArgument(0));
-      return QueryBuilders.boolQuery().mustNot(expr);
+    private Query visitNot(ASTNode node) {
+      Query expr = visit((ASTNode) node.getArgument(0));
+      return BoolQuery.of(q -> q.mustNot(expr))._toQuery();
     }
 
-    private QueryBuilder visitEq(ASTNode node) {
+    private Query visitEq(ASTNode node) {
       String field = resolveField(node.getArgument(0).toString()).getField();
       Object term = node.getArgument(1);
       visitField(field, Collections.singleton(term.toString()));
-      return QueryBuilders.termQuery(field, term);
+
+      return TermQuery.of(q -> q.field(field).value(term.toString()))._toQuery();
     }
 
-    private QueryBuilder visitLe(ASTNode node) {
+    private Query visitLe(ASTNode node) {
       String field = resolveField(node.getArgument(0).toString()).getField();
       Object value = node.getArgument(1);
       visitField(field);
-      return QueryBuilders.rangeQuery(field).lte(value);
+
+      return RangeQuery.of(q -> q.field(field).lte(JsonData.of(value)))._toQuery();
     }
 
-    private QueryBuilder visitLt(ASTNode node) {
+    private Query visitLt(ASTNode node) {
       String field = resolveField(node.getArgument(0).toString()).getField();
       Object value = node.getArgument(1);
       visitField(field);
-      return QueryBuilders.rangeQuery(field).lt(value);
+
+      return RangeQuery.of(q -> q.field(field).lt(JsonData.of(value)))._toQuery();
     }
 
-    private QueryBuilder visitGe(ASTNode node) {
+    private Query visitGe(ASTNode node) {
       String field = resolveField(node.getArgument(0).toString()).getField();
       Object value = node.getArgument(1);
       visitField(field);
-      return QueryBuilders.rangeQuery(field).gte(value);
+
+      return RangeQuery.of(q -> q.field(field).gte(JsonData.of(value)))._toQuery();
     }
 
-    private QueryBuilder visitGt(ASTNode node) {
+    private Query visitGt(ASTNode node) {
       String field = resolveField(node.getArgument(0).toString()).getField();
       Object value = node.getArgument(1);
       visitField(field);
-      return QueryBuilders.rangeQuery(field).gt(value);
+
+      return RangeQuery.of(q -> q.field(field).gt(JsonData.of(value)))._toQuery();
     }
 
-    private QueryBuilder visitBetween(ASTNode node) {
+    private Query visitBetween(ASTNode node) {
       String field = resolveField(node.getArgument(0).toString()).getField();
       visitField(field);
       ArrayList<Object> values = (ArrayList<Object>) node.getArgument(1);
-      return QueryBuilders.rangeQuery(field).gte(values.get(0)).lte(values.get(1));
+
+      return RangeQuery.of(q -> q.field(field).gte(JsonData.of(values.get(0))).lte(JsonData.of(values.get(1))))._toQuery();
     }
 
-    private QueryBuilder visitMatch(ASTNode node) {
-      if (node.getArgumentsSize() == 0) return QueryBuilders.matchAllQuery();
+    private Query visitMatch(ASTNode node) {
+      if (node.getArgumentsSize() == 0) return new MatchAllQuery.Builder().build()._toQuery();
       String stringQuery = toStringQuery(node.getArgument(0), " OR ");
       // if there is only one argument, the fields to be matched are the default ones
       // otherwise, the following argument can be the field name or a list of field names
-      QueryStringQueryBuilder builder = QueryBuilders.queryStringQuery(stringQuery);
+
+      QueryStringQuery.Builder builder = new QueryStringQuery.Builder().query(stringQuery);
 
       if (node.getArgumentsSize() > 1) {
         if (node.getArgument(1) instanceof List) {
           List<Object> fields = (List<Object>) node.getArgument(1);
-          fields.stream().map(Object::toString).forEach(f -> builder.field(resolveField(f).getField()));
+          List<String> resolvedFields = fields.stream().map(Object::toString).map(f -> resolveField(f).getField()).collect(Collectors.toList());
+
+          builder.fields(resolvedFields);
         } else {
-          builder.field(resolveField(node.getArgument(1).toString()).getField());
+          List<String> resolvedFields = new ArrayList<>();
+          resolvedFields.add(resolveField(node.getArgument(1).toString()).getField());
+
+          builder.fields(resolvedFields);
         }
       } else if (node.getArgumentsSize() == 1) {
         // make sure that it's a full text search but add more weight to the analyzed fields
-        builder.field("_all");
+        List<String> resolvedFields = new ArrayList<>();
+        resolvedFields.add("_all");
+
         for(String analyzedField : rqlFieldResolver.getAnalzedFields()) {
-          builder.field(resolveField(analyzedField).getField(), 5F);
+          resolvedFields.add(resolveField(analyzedField).getField());
         }
+
+        builder.fields(resolvedFields).boost(5F);
       }
-      return builder;
+
+      return builder.build()._toQuery();
     }
 
-    private QueryBuilder visitLike(ASTNode node) {
+    private Query visitLike(ASTNode node) {
       String field = resolveField(node.getArgument(0).toString()).getField();
       Object value = node.getArgument(1);
       visitField(field);
-      return QueryBuilders.wildcardQuery(field, value.toString());
+
+      return WildcardQuery.of(q -> q.field(field).value(value.toString()))._toQuery();
     }
 
-    private QueryBuilder visitExists(ASTNode node) {
+    private Query visitExists(ASTNode node) {
       String field = resolveField(node.getArgument(0).toString()).getField();
       visitField(field);
-      return QueryBuilders.existsQuery(field);
+
+      return ExistsQuery.of(q -> q.field(field))._toQuery();
     }
 
-    private QueryBuilder visitMissing(ASTNode node) {
+    private Query visitMissing(ASTNode node) {
       String field = resolveField(node.getArgument(0).toString()).getField();
       visitField(field);
-      return QueryBuilders.boolQuery().mustNot(visitExists(node));
+
+      return BoolQuery.of(q -> q.mustNot(visitExists(node)))._toQuery();
     }
 
-    private QueryBuilder visitQuery(ASTNode node) {
+    private Query visitQuery(ASTNode node) {
       String query = node.getArgument(0).toString().replaceAll("\\+", " ");
-      return QueryBuilders.queryStringQuery(query);
+      return QueryStringQuery.of(q -> q.query(query))._toQuery();
     }
 
     private void visitField(String field) {
