@@ -11,10 +11,11 @@
 package org.obiba.es.mica.results;
 
 import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
-import co.elastic.clients.elasticsearch._types.aggregations.MultiTermsBucket;
+import co.elastic.clients.elasticsearch._types.aggregations.StringTermsBucket;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import org.obiba.mica.spi.search.Searcher;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -48,9 +49,13 @@ public class ESResponseDocumentResults implements Searcher.DocumentResults {
   }
 
   @Override
-  public Map<String, Long> getAggregation(String field) { // TODO find out what to do with different types of aggregations
+  public Map<String, Long> getAggregation(String field) {
+    
     Aggregate aggregation = response.aggregations().get(field);
-    return aggregation.multiTerms().buckets().array().stream().collect(Collectors.toMap(MultiTermsBucket::keyAsString, MultiTermsBucket::docCount));
+    Aggregate.Kind aggregationKind = aggregation._kind();
+
+    if (aggregationKind.name() != "sterms") return new HashMap<>();
+    return aggregation.sterms().buckets().array().stream().collect(Collectors.toMap(StringTermsBucket::key, StringTermsBucket::docCount));
   }
 
   @Override
