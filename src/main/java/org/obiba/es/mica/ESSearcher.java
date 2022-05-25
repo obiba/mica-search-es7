@@ -430,7 +430,7 @@ public class ESSearcher implements Searcher {
     String fieldName = localizedFieldName.replace(".analyzed", "");
 
     co.elastic.clients.elasticsearch._types.query_dsl.Query query = QueryStringQuery.of(q -> q.query(queryString).defaultField(localizedFieldName).defaultOperator(Operator.Or))._toQuery();
-    
+
     log.debug("Request /{}/{}", indexName, type);
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, query.toString());
     List<String> names = Lists.newArrayList();
@@ -562,7 +562,7 @@ public class ESSearcher implements Searcher {
     if (query != null && fields != null) query.fields(fields);
     co.elastic.clients.elasticsearch._types.query_dsl.Query postFilter = getPostFilter(termFilter, idFilter);
 
-    co.elastic.clients.elasticsearch._types.query_dsl.Query execQuery = postFilter == null ? query.build()._toQuery() : query == null ? postFilter : BoolQuery.of(q -> q.must(query.build()._toQuery()).filter(postFilter))._toQuery();
+    co.elastic.clients.elasticsearch._types.query_dsl.Query execQuery = postFilter == null ? (query == null ? new MatchAllQuery.Builder().build()._toQuery() : query.build()._toQuery()) : query == null ? postFilter : BoolQuery.of(q -> q.must(query.build()._toQuery()).filter(postFilter))._toQuery();
 
     if (excludedFields != null) {
       BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();

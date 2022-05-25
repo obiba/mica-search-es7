@@ -11,6 +11,7 @@
 package org.obiba.es.mica;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Iterables;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
@@ -26,9 +27,11 @@ import org.springframework.data.domain.Persistable;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.BulkRequest;
+import co.elastic.clients.elasticsearch.core.BulkResponse;
 import co.elastic.clients.elasticsearch.core.DeleteByQueryRequest;
 import co.elastic.clients.elasticsearch.core.DeleteRequest;
 import co.elastic.clients.elasticsearch.core.IndexRequest;
+import co.elastic.clients.elasticsearch.core.bulk.BulkResponseItem;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
 import co.elastic.clients.elasticsearch.indices.DeleteIndexRequest;
@@ -124,11 +127,19 @@ public class ESIndexer implements Indexer {
     BulkRequest.Builder br = new BulkRequest.Builder();
 
     for (Persistable<String> persistable : persistables) {
-      br.operations(op -> op.index(idx -> idx.index(indexName).id(persistable.getId()).document(toJson(persistable))));
+      br.operations(op -> op.index(idx -> idx.index(indexName).id(persistable.getId()).document(toJsonData(persistable))));
     }
 
     try {
-      getClient().bulk(br.build());
+      BulkResponse bulkresponse = getClient().bulk(br.build());
+
+      if (bulkresponse.errors()) {
+        for (BulkResponseItem item: bulkresponse.items()) {
+          if (item.error() != null) {
+            log.error("Failed to bulk index {} [{}] - {} :: {}", item.id(), indexName, item.error().type(), item.error().reason());
+          }
+        }
+      }
     } catch (IOException e) {
       log.error("Failed to bulk index {} - {}", indexName, e);
     }
@@ -147,11 +158,20 @@ public class ESIndexer implements Indexer {
     BulkRequest.Builder br = new BulkRequest.Builder();
 
     for (Indexable indexable: indexables) {
-      br.operations(op -> op.index(idx -> idx.index(indexName).id(indexable.getId()).document(toJson(indexable))));
+      
+      br.operations(op -> op.index(idx -> idx.index(indexName).id(indexable.getId()).document(toJsonData(indexable))));
     }
 
     try {
-      getClient().bulk(br.build());
+      BulkResponse bulkresponse = getClient().bulk(br.build());
+
+      if (bulkresponse.errors()) {
+        for (BulkResponseItem item: bulkresponse.items()) {
+          if (item.error() != null) {
+            log.error("Failed to bulk index {} [{}] - {} :: {}", item.id(), indexName, item.error().type(), item.error().reason());
+          }
+        }
+      }
     } catch (IOException e) {
       log.error("Failed to bulk index {} - {}", indexName, e);
     }
@@ -257,6 +277,10 @@ public class ESIndexer implements Indexer {
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Cannot serialize " + obj + " to ElasticSearch", e);
     }
+  }
+
+  private Map<String, Object> toJsonData(Object obj) {
+    return esSearchService.getObjectMapper().convertValue(obj, new TypeReference<Map<String, Object>>() {});
   }
 
   private IndexRequest<JsonData> getIndexRequestBuilder(String indexName, String id, String source, String parentId) {
