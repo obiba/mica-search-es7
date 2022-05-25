@@ -21,6 +21,12 @@ import org.obiba.mica.spi.search.support.AggregationHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregation;
+import co.elastic.clients.elasticsearch._types.aggregations.AggregationRange;
+import co.elastic.clients.elasticsearch._types.aggregations.RangeAggregation;
+import co.elastic.clients.elasticsearch._types.aggregations.StatsAggregation;
+import co.elastic.clients.elasticsearch._types.aggregations.TermsAggregation;
+
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -82,6 +88,74 @@ public class AggregationParser {
     }
 
     return termsBuilders;
+  }
+
+  private Map<String, Aggregation> parseAggregationsToMap(@Nullable Properties properties, Map<String, Iterable<Aggregation>> subAggregations) {
+    Map<String, Aggregation> aggregations = new HashMap<>();
+    if (properties == null) return aggregations;
+
+    SortedMap<String, ?> sortedSystemProperties = new TreeMap(properties);
+    String prevKey = null;
+    for (Map.Entry<String, ?> entry : sortedSystemProperties.entrySet()) {
+      String key = entry.getKey().replaceAll("\\" + AggregationHelper.PROPERTIES + ".*$", "");
+      if (!key.equals(prevKey)) {
+        parseAggregation(aggregations, properties, key, subAggregations);
+        prevKey = key;
+      }
+    }
+
+    return aggregations;
+  }
+
+  private void parseAggregation(Map<String, Aggregation> aggregations, Properties properties, String key, Map<String, Iterable<Aggregation>> subAggregations) {
+    Boolean localized = Boolean.valueOf(properties.getProperty(key + AggregationHelper.LOCALIZED));
+    String aliasProperty = properties.getProperty(key + AggregationHelper.ALIAS);
+    String typeProperty = properties.getProperty(key + AggregationHelper.TYPE);
+    List<String> types = null == typeProperty ? Arrays.asList(AggregationHelper.AGG_STERMS) : Arrays.asList(typeProperty.split(","));
+    List<String> aliases = null == aliasProperty ? Arrays.asList("") : Arrays.asList(aliasProperty.split(","));
+
+    IntStream.range(0, types.size()).forEach(i -> {
+      String aggType = getAggregationType(types.get(i), localized);
+      getFields(key, aliases.get(i), localized).entrySet().forEach(entry -> {
+        log.trace("Building aggregation '{}' of type '{}'", entry.getKey(), aggType);
+
+        switch (aggType) {
+          case AggregationHelper.AGG_STERMS:
+            String entryValue = entry.getValue();
+            TermsAggregation.Builder termBuilder = new TermsAggregation.Builder().field(entryValue).name(entry.getKey());
+            if (minDocCount > -1) termBuilder.minDocCount(Long.valueOf(minDocCount).intValue());
+            termBuilder.size(Short.toUnsignedInt(Short.MAX_VALUE)); // termsBuilders.add(termBuilder.order(BucketOrder.key(true)).size(Short.MAX_VALUE));
+
+            aggregations.put(key, termBuilder.build()._toAggregation());
+            break;
+          case AggregationHelper.AGG_STATS:
+            aggregations.put(key, StatsAggregation.of(a -> a.field(entry.getValue()))._toAggregation());
+            break;
+          case AggregationHelper.AGG_RANGE:
+            RangeAggregation.Builder builder = new RangeAggregation.Builder().field(entry.getValue()).name(entry.getKey());
+
+            Stream.of(properties.getProperty(key + AggregationHelper.RANGES).split(",")).forEach(range -> {
+              String[] values = range.split(":");
+              if (values.length != 2) throw new IllegalArgumentException("Range From and To are not defined");
+
+              if (!"*".equals(values[0]) || !"*".equals(values[1])) {                
+                if ("*".equals(values[0])) {
+                  builder.ranges(AggregationRange.of(a -> a.to(values[1])));
+                } else if ("*".equals(values[1])) {
+                  builder.ranges(AggregationRange.of(a -> a.from(values[0])));
+                } else {
+                  builder.ranges(AggregationRange.of(a -> a.from(values[0]).to(values[1])));
+                }
+              }
+            });
+
+            aggregations.put(key, builder.build()._toAggregation());
+            break;
+          default:
+            throw new IllegalArgumentException("Invalid aggregation type detected: " + aggType);
+        }
+      });
+    });
   }
 
   private void parseAggregation(Collection<AbstractAggregationBuilder> termsBuilders, Properties properties,

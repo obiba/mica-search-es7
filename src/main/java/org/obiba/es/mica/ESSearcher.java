@@ -15,22 +15,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import org.elasticsearch.client.HttpAsyncResponseConsumerFactory;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.IdsQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
-import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortBuilder;
-import org.elasticsearch.search.sort.SortBuilders;
-import org.elasticsearch.search.sort.SortOrder;
 import org.obiba.es.mica.query.AndQuery;
 import org.obiba.es.mica.query.RQLJoinQuery;
 import org.obiba.es.mica.query.RQLQuery;
@@ -156,9 +146,9 @@ public class ESSearcher implements Searcher {
     Map<String, Aggregation> aggregations = new HashMap<>();
     aggregations.put(AGG_TOTAL_COUNT, globalAggregation);
 
-    for (AbstractAggregationBuilder aggBuilder : getAggregations(query.getAggregationBuckets(), aggregationProperties)) {
-      aggregations.put(aggBuilder.getName(), new Aggregation.Builder().terms(agg -> agg.withJson(new StringReader(aggBuilder.toString()))).build());
-    }
+    // for (AbstractAggregationBuilder aggBuilder : getAggregations(query.getAggregationBuckets(), aggregationProperties)) {
+    //   aggregations.put(aggBuilder.getName(), new Aggregation.Builder().terms(agg -> agg.withJson(new StringReader(aggBuilder.toString()))).build());
+    // }
 
     co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = theQuery;
 
@@ -200,9 +190,9 @@ public class ESSearcher implements Searcher {
       Map<String, Aggregation> aggregations = new HashMap<>();
       aggregations.put(AGG_TOTAL_COUNT, globalAggregation);
 
-      for (AbstractAggregationBuilder aggBuilder : getAggregations(query.getAggregationBuckets(), aggregationProperties)) {
-        aggregations.put(aggBuilder.getName(), new Aggregation.Builder().terms(agg -> agg.withJson(new StringReader(aggBuilder.toString()))).build());
-      }
+      // for (AbstractAggregationBuilder aggBuilder : getAggregations(query.getAggregationBuckets(), aggregationProperties)) {
+      //   aggregations.put(aggBuilder.getName(), new Aggregation.Builder().terms(agg -> agg.withJson(new StringReader(aggBuilder.toString()))).build());
+      // }
 
       co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = theQuery;
 
@@ -246,9 +236,9 @@ public class ESSearcher implements Searcher {
       Map<String, Aggregation> aggregations = new HashMap<>();
       aggregations.put(AGG_TOTAL_COUNT, globalAggregation);
 
-      for (AbstractAggregationBuilder aggBuilder : aggregationParser.getAggregations(aggregationProperties, subAggregationProperties)) {
-        aggregations.put(aggBuilder.getName(), new Aggregation.Builder().terms(agg -> agg.withJson(new StringReader(aggBuilder.toString()))).build());
-      }
+      // for (AbstractAggregationBuilder aggBuilder : aggregationParser.getAggregations(aggregationProperties, subAggregationProperties)) {
+      //   aggregations.put(aggBuilder.getName(), new Aggregation.Builder().terms(agg -> agg.withJson(new StringReader(aggBuilder.toString()))).build());
+      // }
 
       co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = theQuery;
 
@@ -291,9 +281,9 @@ public class ESSearcher implements Searcher {
       Map<String, Aggregation> aggregations = new HashMap<>();
       aggregations.put(AGG_TOTAL_COUNT, globalAggregation);
 
-      for (AbstractAggregationBuilder aggBuilder : aggregationParser.getAggregations(aggregationProperties)) {
-        aggregations.put(aggBuilder.getName(), new Aggregation.Builder().terms(agg -> agg.withJson(new StringReader(aggBuilder.toString()))).build());
-      }
+      // for (AbstractAggregationBuilder aggBuilder : aggregationParser.getAggregations(aggregationProperties)) {
+      //   aggregations.put(aggBuilder.getName(), new Aggregation.Builder().terms(agg -> agg.withJson(new StringReader(aggBuilder.toString()))).build());
+      // }
 
       co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = theQuery;
 
@@ -406,9 +396,9 @@ public class ESSearcher implements Searcher {
 
       Map<String, Aggregation> aggregations = new HashMap<>();
 
-      for (String field : query.getAggregations()) {
-        aggregations.put(field, new Aggregation.Builder().terms(TermsAggregation.of(agg -> agg.field(field).size(Short.toUnsignedInt(Short.MAX_VALUE)))).build());
-      }
+      // for (String field : query.getAggregations()) {
+      //   aggregations.put(field, new Aggregation.Builder().terms(TermsAggregation.of(agg -> agg.field(field).size(Short.toUnsignedInt(Short.MAX_VALUE)))).build());
+      // }
 
       response = getClient().search(s -> s.index(indexName)
         .query(esQuery)
@@ -678,20 +668,20 @@ public class ESSearcher implements Searcher {
     return BoolQuery.of(q -> q.must(includedFilter.build()._toQuery(), excludedFilter.build()._toQuery()))._toQuery();
   }
 
-  private void appendAggregations(SearchSourceBuilder requestBuilder, List<String> aggregationBuckets, Properties aggregationProperties) {
-    Map<String, Properties> subAggregations = Maps.newHashMap();
-    if (aggregationBuckets != null)
-      aggregationBuckets.forEach(field -> subAggregations.put(field, aggregationProperties));
-    aggregationParser.setLocales(esSearchService.getConfigurationProvider().getLocales());
-    aggregationParser.getAggregations(aggregationProperties, subAggregations).forEach(requestBuilder::aggregation);
-  }
+  // private void appendAggregations(SearchSourceBuilder requestBuilder, List<String> aggregationBuckets, Properties aggregationProperties) {
+  //   Map<String, Properties> subAggregations = Maps.newHashMap();
+  //   if (aggregationBuckets != null)
+  //     aggregationBuckets.forEach(field -> subAggregations.put(field, aggregationProperties));
+  //   aggregationParser.setLocales(esSearchService.getConfigurationProvider().getLocales());
+  //   aggregationParser.getAggregations(aggregationProperties, subAggregations).forEach(requestBuilder::aggregation);
+  // }
 
-  private Iterable<AbstractAggregationBuilder> getAggregations(List<String> aggregationBuckets, Properties aggregationProperties) {
-    Map<String, Properties> subAggregations = Maps.newHashMap();
-    if (aggregationBuckets != null) aggregationBuckets.forEach(field -> subAggregations.put(field, aggregationProperties));
-    aggregationParser.setLocales(esSearchService.getConfigurationProvider().getLocales());
-    return aggregationParser.getAggregations(aggregationProperties, subAggregations);
-  }
+  // private Iterable<AbstractAggregationBuilder> getAggregations(List<String> aggregationBuckets, Properties aggregationProperties) {
+  //   Map<String, Properties> subAggregations = Maps.newHashMap();
+  //   if (aggregationBuckets != null) aggregationBuckets.forEach(field -> subAggregations.put(field, aggregationProperties));
+  //   aggregationParser.setLocales(esSearchService.getConfigurationProvider().getLocales());
+  //   return aggregationParser.getAggregations(aggregationProperties, subAggregations);
+  // }
 
   /**
    * Returns the default source filtering fields. A NULL signifies the whole source to be included

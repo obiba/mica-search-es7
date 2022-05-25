@@ -14,7 +14,6 @@ import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
 import co.elastic.clients.elasticsearch._types.aggregations.MultiTermsBucket;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import org.obiba.mica.spi.search.Searcher;
-import org.obiba.mica.spi.search.Searcher.DocumentResult;
 
 import java.util.List;
 import java.util.Map;
@@ -49,7 +48,7 @@ public class ESResponseDocumentResults implements Searcher.DocumentResults {
   }
 
   @Override
-  public Map<String, Long> getAggregation(String field) {
+  public Map<String, Long> getAggregation(String field) { // TODO find out what to do with different types of aggregations
     Aggregate aggregation = response.aggregations().get(field);
     return aggregation.multiTerms().buckets().array().stream().collect(Collectors.toMap(MultiTermsBucket::keyAsString, MultiTermsBucket::docCount));
   }
