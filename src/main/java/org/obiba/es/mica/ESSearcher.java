@@ -22,10 +22,8 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.IdsQueryBuilder;
-import org.elasticsearch.index.query.Operator;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.QueryStringQueryBuilder;
 import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
@@ -58,6 +56,7 @@ import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.ExistsQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.IdsQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.MatchAllQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import co.elastic.clients.elasticsearch._types.query_dsl.PrefixQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.QueryStringQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery;
@@ -430,23 +429,14 @@ public class ESSearcher implements Searcher {
     String localizedFieldName = String.format(defaultFieldNamePattern, locale);
     String fieldName = localizedFieldName.replace(".analyzed", "");
 
-    QueryBuilder queryExec = QueryBuilders.queryStringQuery(queryString)
-        .defaultField(localizedFieldName)
-        .defaultOperator(Operator.OR);
-
-    SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
-        .query(queryExec) //
-        .from(0) //
-        .size(limit)
-        .sort(SortBuilders.scoreSort().order(SortOrder.DESC))
-        .fetchSource(new String[]{fieldName}, null);
-
+    co.elastic.clients.elasticsearch._types.query_dsl.Query query = QueryStringQuery.of(q -> q.query(queryString).defaultField(localizedFieldName).defaultOperator(Operator.Or))._toQuery();
+    
     log.debug("Request /{}/{}", indexName, type);
-    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, query.toString());
     List<String> names = Lists.newArrayList();
 
     try {
-      co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.withJson(new StringReader(sourceBuilder.query().toString())));
+      co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = query;
 
       SourceConfig sourceConfig = new SourceConfig.Builder().filter(SourceFilter.of(s -> s.includes(fieldName))).build();
       SortOptions sortOption = new SortOptions.Builder().score(score -> score.order(co.elastic.clients.elasticsearch._types.SortOrder.Desc)).build();
@@ -479,16 +469,13 @@ public class ESSearcher implements Searcher {
 
   @Override
   public InputStream getDocumentById(String indexName, String type, String id) {
-    QueryBuilder query = new IdsQueryBuilder().addIds(id);
-
-    SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
-        .query(query);
+    co.elastic.clients.elasticsearch._types.query_dsl.Query query = IdsQuery.of(iq -> iq.values(id))._toQuery();
 
     log.debug("Request: /{}/{}", indexName, type);
-    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, query.toString());
     SearchResponse<ObjectNode> response = null;
     try {
-      co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.withJson(new StringReader(sourceBuilder.query().toString())));
+      co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = query;
 
       response = getClient().search(s -> s.index(indexName)
         .query(esQuery),
@@ -504,18 +491,15 @@ public class ESSearcher implements Searcher {
 
   @Override
   public InputStream getDocumentByClassName(String indexName, String type, Class clazz, String id) {
-    QueryBuilder query = QueryBuilders.queryStringQuery(clazz.getSimpleName()).field("className");
-    query = QueryBuilders.boolQuery().must(query)
-        .must(QueryBuilders.idsQuery().addIds(id));
+    co.elastic.clients.elasticsearch._types.query_dsl.Query classNameQuery = QueryStringQuery.of(q -> q.query(clazz.getSimpleName()).fields("className"))._toQuery();
 
-    SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
-        .query(query);
+    co.elastic.clients.elasticsearch._types.query_dsl.Query query = BoolQuery.of(q -> q.must(classNameQuery, IdsQuery.of(iq -> iq.values(id))._toQuery()))._toQuery(); 
 
     log.debug("Request /{}/{}", indexName, type);
-    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, query.toString());
     SearchResponse<ObjectNode> response = null;
     try {
-      co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.withJson(new StringReader(sourceBuilder.query().toString())));
+      co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = query;
 
       response = getClient().search(s -> s.index(indexName)
         .query(esQuery),
@@ -534,28 +518,23 @@ public class ESSearcher implements Searcher {
                                                  String sort, String order, String queryString,
                                                  TermFilter termFilter, IdFilter idFilter) {
 
-    QueryBuilder query = QueryBuilders.queryStringQuery(clazz.getSimpleName()).field("className");
+    co.elastic.clients.elasticsearch._types.query_dsl.Query classNameQuery = QueryStringQuery.of(q -> q.query(clazz.getSimpleName()).fields("className"))._toQuery();   
+
+    BoolQuery.Builder boolQuery = new BoolQuery.Builder().must(classNameQuery);
+
     if (queryString != null) {
-      query = QueryBuilders.boolQuery().must(query).must(QueryBuilders.queryStringQuery(queryString));
+      boolQuery.must(QueryStringQuery.of(q -> q.query(queryString))._toQuery());
     }
 
-    QueryBuilder postFilter = null; // TODO getPostFilter(termFilter, idFilter);
+    co.elastic.clients.elasticsearch._types.query_dsl.Query postFilter = getPostFilter(termFilter, idFilter);
 
-    SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
-        .query(postFilter == null ? query : QueryBuilders.boolQuery().must(query).must(postFilter)) //
-        .from(from) //
-        .size(limit);
-
-    if (sort != null) {
-      sourceBuilder.sort(
-          SortBuilders.fieldSort(sort).order(order == null ? SortOrder.ASC : SortOrder.valueOf(order.toUpperCase())));
-    }
+    co.elastic.clients.elasticsearch._types.query_dsl.Query execQuery = postFilter == null ? boolQuery.build()._toQuery() : boolQuery.must(postFilter).build()._toQuery();
 
     log.debug("Request /{}/{}", indexName, type);
-    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, execQuery.toString());
     SearchResponse<ObjectNode> response = null;
     try {
-      co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.withJson(new StringReader(sourceBuilder.query().toString())));
+      co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = execQuery;
 
       String capitalizedOrder = order.substring(0, 1).toUpperCase() + order.substring(1).toLowerCase();
 
@@ -621,22 +600,14 @@ public class ESSearcher implements Searcher {
 
   @Override
   public long countDocumentsWithField(String indexName, String type, String field) {
-    BoolQueryBuilder builder = QueryBuilders.boolQuery()
-        .should(QueryBuilders.existsQuery(field));
-
-    SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
-        .query(builder)
-        .from(0) //
-        .size(0)
-        .aggregation(AggregationBuilders.terms(field.replaceAll("\\.", "-")).field(field).size(Short.MAX_VALUE));
+    co.elastic.clients.elasticsearch._types.query_dsl.Query theQuery = BoolQuery.of(q -> q.must(m -> m.exists(ExistsQuery.of(existsQ -> existsQ.field(field)))))._toQuery();
 
     try {
-      log.debug("Request /{}/{}: {}", indexName, type, sourceBuilder);
-      if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, sourceBuilder.toString());
+      log.debug("Request /{}/{}: {}", indexName, type, theQuery);
+      if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, theQuery.toString());
 
-      co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = co.elastic.clients.elasticsearch._types.query_dsl.Query.of(q -> q.withJson(new StringReader(sourceBuilder.query().toString())));
-
-      Aggregation aggregation = new Aggregation.Builder().terms(TermsAggregation.of(agg -> agg.field(field.replaceAll("\\.", "-")).size(Short.toUnsignedInt(Short.MAX_VALUE)))).build();
+      co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = theQuery;
+      Aggregation aggregation = new Aggregation.Builder().terms(TermsAggregation.of(agg -> agg.name(field).field(field.replaceAll("\\.", "-")).size(Short.toUnsignedInt(Short.MAX_VALUE)))).build();
 
       SearchResponse<ObjectNode> response = getClient().search(s -> s.index(indexName)
         .query(esQuery)
