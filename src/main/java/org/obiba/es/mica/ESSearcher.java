@@ -597,19 +597,20 @@ public class ESSearcher implements Searcher {
       if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, theQuery.toString());
 
       co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = theQuery;
-      Aggregation aggregation = new Aggregation.Builder().terms(TermsAggregation.of(agg -> agg.name(field).field(field.replaceAll("\\.", "-")).size(Short.toUnsignedInt(Short.MAX_VALUE)))).build();
+
+      String cleanedField = field.replaceAll("\\.", "-");
+      TermsAggregation termsAggregation = TermsAggregation.of(agg -> agg.field(cleanedField).size(Short.toUnsignedInt(Short.MAX_VALUE)));
 
       SearchResponse<ObjectNode> response = getClient().search(s -> s.index(indexName)
         .query(esQuery)
         .from(0)
         .size(0)
-        .aggregations(field.replaceAll("\\.", "-"), aggregation),
+        .aggregations(cleanedField, termsAggregation._toAggregation()),
       ObjectNode.class);
 
       log.debug("Response /{}/{}: {}", indexName, type, response);
 
-      return response.aggregations().entrySet().stream().flatMap(a -> ((Terms) a).getBuckets().stream())
-          .map(a -> a.getKey().toString()).distinct().collect(Collectors.toList()).size();
+      return response.aggregations().get(cleanedField).sterms().buckets().array().stream().map(a -> a.key()).distinct().collect(Collectors.toList()).size();
     } catch (IndexNotFoundException | IOException e) {
       log.warn("Count of Studies With Variables failed", e);
       return 0;
