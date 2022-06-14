@@ -67,6 +67,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.obiba.mica.spi.search.QueryScope.AGGREGATION;
@@ -131,7 +132,7 @@ public class ESSearcher implements Searcher {
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, theQuery.toString());
 
     TrackHits trackHits = new TrackHits.Builder().enabled(true).build();
-    Aggregation globalAggregation = new Aggregation.Builder().global(GlobalAggregation.of(agg -> agg.name(AGG_TOTAL_COUNT))).build();
+    Aggregation globalAggregation = GlobalAggregation.of(g -> g)._toAggregation();
     SourceConfig.Builder sourceConfigBuilder = new SourceConfig.Builder();
 
     if (AGGREGATION == scope) {
@@ -144,7 +145,8 @@ public class ESSearcher implements Searcher {
     Map<String, Aggregation> aggregations = new HashMap<>();
     aggregations.put(AGG_TOTAL_COUNT, globalAggregation);
 
-    Map<String, Aggregation> parsedAggregationsFromProperties = aggregationParser.getAggregations(aggregationProperties, query.getAggregationBuckets());
+    Map<String, Properties> subAggregationProperties = query.getAggregationBuckets().stream().collect(Collectors.toMap(b -> b, b -> aggregationProperties));
+    Map<String, Aggregation> parsedAggregationsFromProperties = aggregationParser.getAggregations(aggregationProperties, subAggregationProperties);
     aggregations.putAll(parsedAggregationsFromProperties);
 
     co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = theQuery;
@@ -180,12 +182,13 @@ public class ESSearcher implements Searcher {
     try {
       TrackHits trackHits = new TrackHits.Builder().enabled(true).build();
       SourceConfig sourceConfig = new SourceConfig.Builder().fetch(false).build();
-      Aggregation globalAggregation = new Aggregation.Builder().global(GlobalAggregation.of(agg -> agg.name(AGG_TOTAL_COUNT))).build();
+      Aggregation globalAggregation = GlobalAggregation.of(g -> g)._toAggregation();
 
       Map<String, Aggregation> aggregations = new HashMap<>();
       aggregations.put(AGG_TOTAL_COUNT, globalAggregation);
 
-      Map<String, Aggregation> parsedAggregationsFromProperties = aggregationParser.getAggregations(aggregationProperties, query.getAggregationBuckets());
+      Map<String, Properties> subAggregationProperties = query.getAggregationBuckets().stream().collect(Collectors.toMap(b -> b, b -> aggregationProperties));
+      Map<String, Aggregation> parsedAggregationsFromProperties = aggregationParser.getAggregations(aggregationProperties, subAggregationProperties);
       aggregations.putAll(parsedAggregationsFromProperties);
 
       co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = theQuery;
@@ -225,7 +228,7 @@ public class ESSearcher implements Searcher {
     try {
       TrackHits trackHits = new TrackHits.Builder().enabled(true).build();
       SourceConfig sourceConfig = new SourceConfig.Builder().fetch(false).build();
-      Aggregation globalAggregation = new Aggregation.Builder().global(GlobalAggregation.of(agg -> agg.name(AGG_TOTAL_COUNT))).build();
+      Aggregation globalAggregation = GlobalAggregation.of(g -> g)._toAggregation();
 
       Map<String, Aggregation> aggregations = new HashMap<>();
       aggregations.put(AGG_TOTAL_COUNT, globalAggregation);
@@ -268,7 +271,7 @@ public class ESSearcher implements Searcher {
     try {
       TrackHits trackHits = new TrackHits.Builder().enabled(true).build();
       SourceConfig sourceConfig = new SourceConfig.Builder().fetch(false).build();
-      Aggregation globalAggregation = new Aggregation.Builder().global(GlobalAggregation.of(agg -> agg.name(AGG_TOTAL_COUNT))).build();
+      Aggregation globalAggregation = GlobalAggregation.of(g -> g)._toAggregation();
 
       Map<String, Aggregation> aggregations = new HashMap<>();
       aggregations.put(AGG_TOTAL_COUNT, globalAggregation);

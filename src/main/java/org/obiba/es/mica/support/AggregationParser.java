@@ -47,7 +47,7 @@ public class AggregationParser {
     this.locales = locales;
   }
 
-  public Map<String, Aggregation> getAggregations(@Nullable Properties properties, @Nullable List<String> buckets) {
+  public Map<String, Aggregation> getAggregations(@Nullable Properties properties, @Nullable Map<String, Properties> subProperties) {
     Map<String, Aggregation> aggregations = new HashMap<>();
     if (properties == null) return aggregations;
 
@@ -56,7 +56,7 @@ public class AggregationParser {
     for (Map.Entry<String, ?> entry : sortedSystemProperties.entrySet()) {
       String key = entry.getKey().replaceAll("\\" + AggregationHelper.PROPERTIES + ".*$", "");
       if (!key.equals(prevKey)) {
-        Map<String, Aggregation> parsedAggregationMap = parseAggregation(key, properties, buckets);
+        Map<String, Aggregation> parsedAggregationMap = parseAggregation(key, properties, subProperties);
         aggregations.putAll(parsedAggregationMap);
         prevKey = key;
       }
@@ -65,7 +65,7 @@ public class AggregationParser {
     return aggregations;
   }
 
-  private Map<String, Aggregation> parseAggregation(String key, Properties properties, List<String> buckets) {
+  private Map<String, Aggregation> parseAggregation(String key, Properties properties, @Nullable Map<String, Properties> subProperties) {
     Boolean localized = Boolean.valueOf(properties.getProperty(key + AggregationHelper.LOCALIZED));
     String aliasProperty = properties.getProperty(key + AggregationHelper.ALIAS);
     String typeProperty = properties.getProperty(key + AggregationHelper.TYPE);
@@ -87,9 +87,8 @@ public class AggregationParser {
 
             TermsAggregation termsAggregation = TermsAggregation.of(a -> a.field(termsEntryValue).size(Short.toUnsignedInt(Short.MAX_VALUE)).minDocCount(minDocCountAsInt > -1 ? minDocCountAsInt : 0));
 
-            if (buckets != null && buckets.contains(termsEntryValue)) {
-              int entryBucketIndex = buckets.indexOf(termsEntryValue);
-              parsed.put(termsEntryKey, Aggregation.of(a -> a.terms(termsAggregation).aggregations(parseAggregation(buckets.get(entryBucketIndex), properties, null))));
+            if (subProperties != null && subProperties.containsKey(termsEntryValue)) {
+              parsed.put(termsEntryKey, Aggregation.of(a -> a.terms(termsAggregation).aggregations(parseAggregation(key, subProperties.get(termsEntryValue), null))));
             } else {
               parsed.put(termsEntryKey, termsAggregation._toAggregation());
             }
@@ -117,11 +116,10 @@ public class AggregationParser {
                   rangeAggregation = RangeAggregation.of(r -> r.field(rangeEntryValue).ranges(AggregationRange.of(a -> a.from(values[0]).to(values[1]))));
                 }
 
-                if (buckets != null && buckets.contains(rangeEntryValue)) {
+                if (subProperties != null && subProperties.containsKey(rangeEntryValue)) {
                   RangeAggregation agg = rangeAggregation;
 
-                  int entryBucketIndex = buckets.indexOf(rangeEntryValue);
-                  parsed.put(rangeEntryKey, Aggregation.of(a -> a.range(agg).aggregations(parseAggregation(buckets.get(entryBucketIndex), properties, null))));
+                  parsed.put(rangeEntryKey, Aggregation.of(a -> a.range(agg).aggregations(parseAggregation(key, subProperties.get(rangeEntryValue), null))));
                 } else {
                   parsed.put(rangeEntryKey, rangeAggregation._toAggregation());
                 }

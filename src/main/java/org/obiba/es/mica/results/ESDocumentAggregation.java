@@ -30,7 +30,7 @@ public class ESDocumentAggregation implements Searcher.DocumentAggregation {
 
   @Override
   public String getType() {
-    return aggregation._kind().toString();
+    return aggregation._kind().jsonValue();
   }
 
   @Override
