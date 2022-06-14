@@ -18,14 +18,16 @@ import org.obiba.mica.spi.search.Searcher;
  */
 public class ESDocumentAggregation implements Searcher.DocumentAggregation {
   private final Aggregate aggregation;
+  private final String name;
 
-  public ESDocumentAggregation(Aggregate aggregation) {
+  public ESDocumentAggregation(String name, Aggregate aggregation) {
     this.aggregation = aggregation;
+    this.name = name;
   }
 
   @Override
   public String getName() {
-    return aggregation._get().toString();
+    return name;
   }
 
   @Override

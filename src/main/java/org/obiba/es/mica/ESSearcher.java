@@ -139,7 +139,7 @@ public class ESSearcher implements Searcher {
       sourceConfigBuilder.fetch(false);
     } else if (sourceFields != null) {
       if (sourceFields.isEmpty()) sourceConfigBuilder.fetch(false);
-      else sourceConfigBuilder.filter(SourceFilter.of(s -> s.includes(sourceFields).excludes(null)));
+      else sourceConfigBuilder.filter(SourceFilter.of(s -> s.includes(sourceFields)));
     }
 
     Map<String, Aggregation> aggregations = new HashMap<>();

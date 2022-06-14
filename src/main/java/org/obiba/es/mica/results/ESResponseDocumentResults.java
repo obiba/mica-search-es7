@@ -60,7 +60,7 @@ public class ESResponseDocumentResults implements Searcher.DocumentResults {
 
   @Override
   public List<Searcher.DocumentAggregation> getAggregations() {
-    return response.aggregations().values().stream()
-        .map(ESDocumentAggregation::new).collect(Collectors.toList());
+    return response.aggregations().entrySet().stream()
+        .map(entry ->  new ESDocumentAggregation(entry.getKey(), entry.getValue())).collect(Collectors.toList());
   }
 }

@@ -49,6 +49,6 @@ public class ESDocumentRangeBucket implements Searcher.DocumentRangeBucket {
 
   @Override
   public List<Searcher.DocumentAggregation> getAggregations() {
-    return bucket.aggregations().values().stream().map(ESDocumentAggregation::new).collect(Collectors.toList());
+    return bucket.aggregations().entrySet().stream().map(entry -> new ESDocumentAggregation(entry.getKey(), entry.getValue())).collect(Collectors.toList());
   }
 }
