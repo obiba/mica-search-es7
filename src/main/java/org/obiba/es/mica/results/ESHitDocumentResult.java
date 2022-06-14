@@ -50,7 +50,7 @@ public class ESHitDocumentResult implements Searcher.DocumentResult {
   public Map<String, Object> getSource() {
     ObjectNode source = hit.source();
     if (source.isObject()) {
-      return objectMapper.convertValue(source.objectNode(), new TypeReference<Map<String, Object>>() {});
+      return objectMapper.convertValue(source, new TypeReference<Map<String, Object>>() {});
     } else {
       return new HashMap<>();
     }
