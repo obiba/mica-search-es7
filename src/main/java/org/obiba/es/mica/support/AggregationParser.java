@@ -56,9 +56,80 @@ public class AggregationParser {
     this.locales = locales;
   }
 
-  public Iterable<AbstractAggregationBuilder> getAggregations(@Nullable Properties properties) {
-    return getAggregations(properties, null);
+  public void getAggregations(@Nullable Properties properties, @Nullable List<String> buckets) {
+    if (properties == null) return;
+
+    SortedMap<String, ?> sortedSystemProperties = new TreeMap(properties);
+    String prevKey = null;
+    for (Map.Entry<String, ?> entry : sortedSystemProperties.entrySet()) {
+      String key = entry.getKey().replaceAll("\\" + AggregationHelper.PROPERTIES + ".*$", "");
+      if (!key.equals(prevKey)) {
+
+        prevKey = key;
+      }
+    }
+
   }
+
+  private void parseAggregation(String key, Properties properties, List<String> buckets) {
+    Boolean localized = Boolean.valueOf(properties.getProperty(key + AggregationHelper.LOCALIZED));
+    String aliasProperty = properties.getProperty(key + AggregationHelper.ALIAS);
+    String typeProperty = properties.getProperty(key + AggregationHelper.TYPE);
+    List<String> types = null == typeProperty ? Arrays.asList(AggregationHelper.AGG_STERMS) : Arrays.asList(typeProperty.split(","));
+    List<String> aliases = null == aliasProperty ? Arrays.asList("") : Arrays.asList(aliasProperty.split(","));
+
+    IntStream.range(0, types.size()).forEach(i -> {
+      String aggType = getAggregationType(types.get(i), localized);
+      getFields(key, aliases.get(i), localized).entrySet().forEach(entry -> {
+        log.trace("Building aggregation '{}' of type '{}'", entry.getKey(), aggType);
+
+        switch (aggType) {
+          case AggregationHelper.AGG_STERMS:
+            String termsEntryValue = entry.getValue();
+            int minDocCountAsInt = Long.valueOf(minDocCount).intValue();
+
+            if (buckets != null && buckets.contains(termsEntryValue)) {
+
+            } else {
+              TermsAggregation.of(a -> a.field(termsEntryValue).size(Short.toUnsignedInt(Short.MAX_VALUE)).minDocCount(minDocCountAsInt > -1 ? minDocCountAsInt : 0));
+            }
+
+            break;
+          case AggregationHelper.AGG_STATS:
+            StatsAggregation.of(a -> a.field(entry.getValue()));
+            break;
+          case AggregationHelper.AGG_RANGE:
+            String rangeEntryValue = entry.getValue();
+
+            if (buckets != null && buckets.contains(rangeEntryValue)) {
+
+            } else {
+              Stream.of(properties.getProperty(key + AggregationHelper.RANGES).split(",")).forEach(range -> {
+                String[] values = range.split(":");
+                if (values.length != 2) throw new IllegalArgumentException("Range From and To are not defined");
+
+                if (!"*".equals(values[0]) || !"*".equals(values[1])) {
+                  if ("*".equals(values[0])) {
+                    RangeAggregation.of(r -> r.field(rangeEntryValue).ranges(AggregationRange.of(a -> a.to(values[1]))));
+                  } else if ("*".equals(values[1])) {
+                    RangeAggregation.of(r -> r.field(rangeEntryValue).ranges(AggregationRange.of(a -> a.from(values[0]))));
+                  } else {
+                    RangeAggregation.of(r -> r.field(rangeEntryValue).ranges(AggregationRange.of(a -> a.from(values[0]).to(values[1]))));
+                  }
+                }
+              });
+            }
+            break;
+
+        }
+      });
+
+    });
+  }
+
+  // public Iterable<AbstractAggregationBuilder> getAggregations(@Nullable Properties properties) {
+  //   return getAggregations(properties, null);
+  // }
 
   public Iterable<AbstractAggregationBuilder> getAggregations(@Nullable Properties properties,
                                                               @Nullable Map<String, Properties> subProperties) {
@@ -122,9 +193,16 @@ public class AggregationParser {
         switch (aggType) {
           case AggregationHelper.AGG_STERMS:
             String entryValue = entry.getValue();
-            TermsAggregation.Builder termBuilder = new TermsAggregation.Builder().field(entryValue).name(entry.getKey());
+            TermsAggregation.Builder termBuilder = new TermsAggregation.Builder().field(entryValue);
             if (minDocCount > -1) termBuilder.minDocCount(Long.valueOf(minDocCount).intValue());
             termBuilder.size(Short.toUnsignedInt(Short.MAX_VALUE)); // termsBuilders.add(termBuilder.order(BucketOrder.key(true)).size(Short.MAX_VALUE));
+
+
+            // if (subAggregations.containsKey(entryValue)) {
+            //   subAggregations.get(entryValue).forEach(a -> {
+            //     Aggregation.of(agg -> agg.terms(t -> t.field("value")).aggregations());
+            //   });
+            // }
 
             aggregations.put(key, termBuilder.build()._toAggregation());
             break;
@@ -132,13 +210,13 @@ public class AggregationParser {
             aggregations.put(key, StatsAggregation.of(a -> a.field(entry.getValue()))._toAggregation());
             break;
           case AggregationHelper.AGG_RANGE:
-            RangeAggregation.Builder builder = new RangeAggregation.Builder().field(entry.getValue()).name(entry.getKey());
+            RangeAggregation.Builder builder = new RangeAggregation.Builder().field(entry.getValue());
 
             Stream.of(properties.getProperty(key + AggregationHelper.RANGES).split(",")).forEach(range -> {
               String[] values = range.split(":");
               if (values.length != 2) throw new IllegalArgumentException("Range From and To are not defined");
 
-              if (!"*".equals(values[0]) || !"*".equals(values[1])) {                
+              if (!"*".equals(values[0]) || !"*".equals(values[1])) {
                 if ("*".equals(values[0])) {
                   builder.ranges(AggregationRange.of(a -> a.to(values[1])));
                 } else if ("*".equals(values[1])) {
@@ -148,6 +226,12 @@ public class AggregationParser {
                 }
               }
             });
+
+            // if (subAggregations.containsKey(entryValue)) {
+            //   subAggregations.get(entryValue).forEach(a -> {
+            //     Aggregation.of(agg -> agg.terms(t -> t.field("value")).aggregations());
+            //   });
+            // }
 
             aggregations.put(key, builder.build()._toAggregation());
             break;
