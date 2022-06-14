@@ -219,8 +219,6 @@ public class ESSearcher implements Searcher {
 
     co.elastic.clients.elasticsearch._types.query_dsl.Query theQuery = filter == null ? queryBuilder : BoolQuery.of(q -> q.must(queryBuilder, filter))._toQuery();
 
-    // aggregationParser.getAggregations(aggregationProperties, subAggregationProperties).forEach(sourceBuilder::aggregation);
-
     log.debug("Request /{}/{}", indexName, type);
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, theQuery.toString());
     SearchResponse<ObjectNode> response = null;
@@ -233,9 +231,8 @@ public class ESSearcher implements Searcher {
       Map<String, Aggregation> aggregations = new HashMap<>();
       aggregations.put(AGG_TOTAL_COUNT, globalAggregation);
 
-      // for (AbstractAggregationBuilder aggBuilder : aggregationParser.getAggregations(aggregationProperties, subAggregationProperties)) {
-      //   aggregations.put(aggBuilder.getName(), new Aggregation.Builder().terms(agg -> agg.withJson(new StringReader(aggBuilder.toString()))).build());
-      // }
+      Map<String, Aggregation> parsedAggregationsFromProperties = aggregationParser.getAggregations(aggregationProperties, subAggregationProperties);
+      aggregations.putAll(parsedAggregationsFromProperties);
 
       co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = theQuery;
 
