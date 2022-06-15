@@ -14,6 +14,8 @@ import org.assertj.core.util.Maps;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import co.elastic.clients.json.JsonData;
 
 import java.util.Map;
@@ -23,12 +25,14 @@ import static org.junit.Assert.assertTrue;
 @Ignore
 public class ESHitSourceMapHelperTest {
 
+  ObjectMapper mapper = new ObjectMapper();
+
   @Test
   public void flattenMapSimple() {
     Map<String, JsonData> map = Maps.newHashMap();
     map.put(("A"), JsonData.of("bla"));
     Map<String, String> flattened = Maps.newHashMap();
-    ESHitSourceMapHelper.flattenMap(map, flattened);
+    ESHitSourceMapHelper.flattenMap(mapper, mapper.valueToTree(map), flattened);
     assertTrue(map.size() == flattened.size());
     assertTrue(map.get("A").toString().equals(flattened.get("A")));
   }
@@ -43,7 +47,7 @@ public class ESHitSourceMapHelperTest {
     mapA.put("A1", JsonData.of(mapB));
 
     Map<String, String> flattened = Maps.newHashMap();
-    ESHitSourceMapHelper.flattenMap(mapA, flattened);
+    ESHitSourceMapHelper.flattenMap(mapper, mapper.valueToTree(mapA), flattened);
     assertTrue(flattened.size() == 2);
     assertNotNull(flattened.get("A"));
     assertNotNull(flattened.get("A1.B"));
@@ -68,7 +72,7 @@ public class ESHitSourceMapHelperTest {
     mapA.put("A2", JsonData.of(mapD));
 
     Map<String, String> flattened = Maps.newHashMap();
-    ESHitSourceMapHelper.flattenMap(mapA, flattened);
+    ESHitSourceMapHelper.flattenMap(mapper, mapper.valueToTree(mapA), flattened);
     assertTrue(flattened.size() == 3);
     assertTrue(flattened.get("A.B.C.D").equals("blabla"));
     assertTrue(flattened.get("A1.C.D").equals("blabla"));

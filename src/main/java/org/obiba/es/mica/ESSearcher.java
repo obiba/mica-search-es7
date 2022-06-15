@@ -429,7 +429,7 @@ public class ESSearcher implements Searcher {
       ObjectNode.class);
 
       response.hits().hits().forEach(hit -> {
-          String value = ESHitSourceMapHelper.flattenMap(hit).get(fieldName).toLowerCase();
+          String value = ESHitSourceMapHelper.flattenMap(objectMapper, hit).get(fieldName).toLowerCase();
           names.add(Joiner.on(" ").join(Splitter.on(" ").trimResults().splitToList(value).stream()
             .filter(str -> !str.contains("[") && !str.contains("(") && !str.contains("{") && !str.contains("]") && !str.contains(")") && !str.contains("}"))
             .map(str -> str.replace(":", "").replace(",", ""))

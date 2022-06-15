@@ -10,26 +10,31 @@
 
 package org.obiba.es.mica.support;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 
 import co.elastic.clients.elasticsearch.core.search.Hit;
-import co.elastic.clients.json.JsonData;
 
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 
 final public class ESHitSourceMapHelper {
 
-  public static Map<String, String> flattenMap(Hit<ObjectNode> hit) {
-    Map<String, JsonData> source = hit.fields();
+  private static Entry<String, JsonNode> next;
+
+  public static Map<String, String> flattenMap(ObjectMapper mapper, Hit<ObjectNode> hit) {
+    ObjectNode source = hit.source();
     Map<String, String> flattenedMap = Maps.newHashMap();
-    flattenMap(source, flattenedMap, "");
+    flattenMap(mapper, source, flattenedMap, "");
     return flattenedMap;
   }
 
-  public static void flattenMap(Map<String, JsonData> source, Map<String, String> flattened) {
-    flattenMap(source, flattened, "");
+  public static void flattenMap(ObjectMapper mapper, ObjectNode source, Map<String, String> flattened) {
+    flattenMap(mapper, source, flattened, "");
   }
 
   /**
@@ -40,15 +45,19 @@ final public class ESHitSourceMapHelper {
    * @param flattened
    * @param key
    */
-  private static void flattenMap(Map<String, JsonData> source, Map<String, String> flattened, String key) {
-    source.entrySet().stream().forEach(entry -> {
-      Object value = entry.getValue();
-      if (value instanceof Map) {
-        flattenMap((Map)value, flattened, addPrefix(key, entry.getKey()));
+  private static void flattenMap(ObjectMapper mapper, ObjectNode source, Map<String, String> flattened, String key) {
+    Iterator<Entry<String, JsonNode>> fields = source.fields();
+
+    while (fields.hasNext()) {
+      next = fields.next();
+      JsonNode value = next.getValue();
+
+      if (value.isObject()) {        
+        flattenMap(mapper, mapper.valueToTree(value), flattened, addPrefix(key, next.getKey()));
       } else {
-        flattened.put(addPrefix(key, entry.getKey()), (String)value);
+        flattened.put(addPrefix(key, next.getKey()), value.textValue());
       }
-    });
+    }
   }
 
   private static String addPrefix(String key, String value) {
