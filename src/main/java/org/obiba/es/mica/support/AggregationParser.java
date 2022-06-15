@@ -88,7 +88,10 @@ public class AggregationParser {
             TermsAggregation termsAggregation = TermsAggregation.of(a -> a.field(termsEntryValue).size(Short.toUnsignedInt(Short.MAX_VALUE)).minDocCount(minDocCountAsInt > -1 ? minDocCountAsInt : 0));
 
             if (subProperties != null && subProperties.containsKey(termsEntryValue)) {
-              parsed.put(termsEntryKey, Aggregation.of(a -> a.terms(termsAggregation).aggregations(parseAggregation(key, subProperties.get(termsEntryValue), null))));
+              Map<String, Aggregation> parsedSubAggregations = getAggregations(subProperties.get(termsEntryValue), null);
+              parsedSubAggregations.remove(termsEntryValue);
+
+              parsed.put(termsEntryKey, Aggregation.of(a -> a.terms(termsAggregation).aggregations(parsedSubAggregations)));
             } else {
               parsed.put(termsEntryKey, termsAggregation._toAggregation());
             }
@@ -119,7 +122,8 @@ public class AggregationParser {
                 if (subProperties != null && subProperties.containsKey(rangeEntryValue)) {
                   RangeAggregation agg = rangeAggregation;
 
-                  parsed.put(rangeEntryKey, Aggregation.of(a -> a.range(agg).aggregations(parseAggregation(key, subProperties.get(rangeEntryValue), null))));
+                  Map<String, Aggregation> parsedSubAggregations = getAggregations(subProperties.get(rangeEntryValue), null);
+                  parsed.put(rangeEntryKey, Aggregation.of(a -> a.range(agg).aggregations(parsedSubAggregations)));
                 } else {
                   parsed.put(rangeEntryKey, rangeAggregation._toAggregation());
                 }
