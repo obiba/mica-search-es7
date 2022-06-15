@@ -29,7 +29,15 @@ public class ESDocumentRangeBucket implements Searcher.DocumentRangeBucket {
 
   @Override
   public String getKeyAsString() {
-    return bucket.key();
+    Double fromAsDouble = bucket.from();
+    Double toAsDouble = bucket.to();
+
+    String keyAsString = "";
+    keyAsString += fromAsDouble == null ? "*" : fromAsDouble.intValue();
+    keyAsString += ":";
+    keyAsString += toAsDouble == null ? "*" : toAsDouble.intValue();
+
+    return keyAsString;
   }
 
   @Override
