@@ -39,12 +39,12 @@ public class ESDocumentRangeBucket implements Searcher.DocumentRangeBucket {
 
   @Override
   public Double getFrom() {
-    return bucket.from();
+    return bucket.from() == null ? Double.NEGATIVE_INFINITY : bucket.from();
   }
 
   @Override
   public Double getTo() {
-    return bucket.to();
+    return bucket.to() == null ? Double.POSITIVE_INFINITY : bucket.to();
   }
 
   @Override

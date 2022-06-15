@@ -19,7 +19,6 @@ import org.elasticsearch.client.HttpAsyncResponseConsumerFactory;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.sort.SortBuilder;
 import org.obiba.es.mica.query.AndQuery;
 import org.obiba.es.mica.query.RQLJoinQuery;
@@ -67,7 +66,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.obiba.mica.spi.search.QueryScope.AGGREGATION;
@@ -146,6 +144,7 @@ public class ESSearcher implements Searcher {
     aggregations.put(AGG_TOTAL_COUNT, globalAggregation);
 
     Map<String, Properties> subAggregationProperties = query.getAggregationBuckets().stream().collect(Collectors.toMap(b -> b, b -> aggregationProperties));
+    aggregationParser.setLocales(esSearchService.getConfigurationProvider().getLocales());
     Map<String, Aggregation> parsedAggregationsFromProperties = aggregationParser.getAggregations(aggregationProperties, subAggregationProperties);
     aggregations.putAll(parsedAggregationsFromProperties);
 
@@ -188,6 +187,7 @@ public class ESSearcher implements Searcher {
       aggregations.put(AGG_TOTAL_COUNT, globalAggregation);
 
       Map<String, Properties> subAggregationProperties = query.getAggregationBuckets().stream().collect(Collectors.toMap(b -> b, b -> aggregationProperties));
+      aggregationParser.setLocales(esSearchService.getConfigurationProvider().getLocales());
       Map<String, Aggregation> parsedAggregationsFromProperties = aggregationParser.getAggregations(aggregationProperties, subAggregationProperties);
       aggregations.putAll(parsedAggregationsFromProperties);
 
@@ -231,6 +231,7 @@ public class ESSearcher implements Searcher {
       Map<String, Aggregation> aggregations = new HashMap<>();
       aggregations.put(AGG_TOTAL_COUNT, globalAggregation);
 
+      aggregationParser.setLocales(esSearchService.getConfigurationProvider().getLocales());
       Map<String, Aggregation> parsedAggregationsFromProperties = aggregationParser.getAggregations(aggregationProperties, subAggregationProperties);
       aggregations.putAll(parsedAggregationsFromProperties);
 
@@ -273,6 +274,7 @@ public class ESSearcher implements Searcher {
       Map<String, Aggregation> aggregations = new HashMap<>();
       aggregations.put(AGG_TOTAL_COUNT, globalAggregation);
 
+      aggregationParser.setLocales(esSearchService.getConfigurationProvider().getLocales());
       Map<String, Aggregation> parsedAggregationsFromProperties = aggregationParser.getAggregations(aggregationProperties, null);
       aggregations.putAll(parsedAggregationsFromProperties);
 
@@ -657,21 +659,6 @@ public class ESSearcher implements Searcher {
 
     return BoolQuery.of(q -> q.must(includedFilter.build()._toQuery(), excludedFilter.build()._toQuery()))._toQuery();
   }
-
-  // private void appendAggregations(SearchSourceBuilder requestBuilder, List<String> aggregationBuckets, Properties aggregationProperties) {
-  //   Map<String, Properties> subAggregations = Maps.newHashMap();
-  //   if (aggregationBuckets != null)
-  //     aggregationBuckets.forEach(field -> subAggregations.put(field, aggregationProperties));
-  //   aggregationParser.setLocales(esSearchService.getConfigurationProvider().getLocales());
-  //   aggregationParser.getAggregations(aggregationProperties, subAggregations).forEach(requestBuilder::aggregation);
-  // }
-
-  // private Iterable<AbstractAggregationBuilder> getAggregations(List<String> aggregationBuckets, Properties aggregationProperties) {
-  //   Map<String, Properties> subAggregations = Maps.newHashMap();
-  //   if (aggregationBuckets != null) aggregationBuckets.forEach(field -> subAggregations.put(field, aggregationProperties));
-  //   aggregationParser.setLocales(esSearchService.getConfigurationProvider().getLocales());
-  //   return aggregationParser.getAggregations(aggregationProperties, subAggregations);
-  // }
 
   /**
    * Returns the default source filtering fields. A NULL signifies the whole source to be included
