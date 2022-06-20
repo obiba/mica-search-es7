@@ -10,11 +10,22 @@
 
 package org.obiba.es.mica;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
-import com.google.common.collect.Lists;
+import static org.obiba.mica.spi.search.QueryScope.AGGREGATION;
+import static org.obiba.mica.spi.search.QueryScope.DETAIL;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.client.HttpAsyncResponseConsumerFactory;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.common.Strings;
@@ -35,6 +46,13 @@ import org.obiba.mica.spi.search.support.Query;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
+
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.FieldSort;
 import co.elastic.clients.elasticsearch._types.SortOptions;
@@ -54,22 +72,6 @@ import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.SourceConfig;
 import co.elastic.clients.elasticsearch.core.search.SourceFilter;
 import co.elastic.clients.elasticsearch.core.search.TrackHits;
-
-import javax.annotation.Nullable;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.stream.Collectors;
-
-import static org.obiba.mica.spi.search.QueryScope.AGGREGATION;
-import static org.obiba.mica.spi.search.QueryScope.DETAIL;
 
 public class ESSearcher implements Searcher {
 
@@ -140,6 +142,21 @@ public class ESSearcher implements Searcher {
       else sourceConfigBuilder.filter(SourceFilter.of(s -> s.includes(sourceFields)));
     }
 
+    List<SortOptions> sortOptions = new ArrayList<>();
+
+    if (!query.isEmpty()) {
+      for (SortBuilder sortBuilder : ((ESQuery) query).getSortBuilders()) {
+        JsonNode sortJson = objectMapper.readTree(sortBuilder.toString());
+        String fieldName = sortJson.fieldNames().next();
+
+        String capitalizedOrder = sortBuilder.order().name().substring(0, 1).toUpperCase() + sortBuilder.order().name().substring(1).toLowerCase();
+
+        sortOptions.add(new SortOptions.Builder().field(field -> field.field(fieldName).order(co.elastic.clients.elasticsearch._types.SortOrder.valueOf(capitalizedOrder))).build());
+      }
+    } else {
+      sortOptions.add(new SortOptions.Builder().score(score -> score.order(co.elastic.clients.elasticsearch._types.SortOrder.Desc)).build());
+    }
+
     Map<String, Aggregation> aggregations = new HashMap<>();
     aggregations.put(AGG_TOTAL_COUNT, globalAggregation);
 
@@ -156,6 +173,7 @@ public class ESSearcher implements Searcher {
       .size(scope == DETAIL ? query.getSize() : 0)
       .trackTotalHits(trackHits)
       .source(sourceConfigBuilder.build())
+      .sort(sortOptions)
       .aggregations(aggregations),
     ObjectNode.class);
 
@@ -317,7 +335,12 @@ public class ESSearcher implements Searcher {
 
       if (query.hasSortBuilders()) {
         for (SortBuilder sortBuilder : query.getSortBuilders()) {
-          sortOptions.add(new SortOptions.Builder().withJson(new StringReader(sortBuilder.toString())).build());
+          JsonNode sortJson = objectMapper.readTree(sortBuilder.toString());
+          String fieldName = sortJson.fieldNames().next();
+
+          String capitalizedOrder = sortBuilder.order().name().substring(0, 1).toUpperCase() + sortBuilder.order().name().substring(1).toLowerCase();
+
+          sortOptions.add(new SortOptions.Builder().field(field -> field.field(fieldName).order(co.elastic.clients.elasticsearch._types.SortOrder.valueOf(capitalizedOrder))).build());
         }
       } else {
         sortOptions.add(new SortOptions.Builder().score(score -> score.order(co.elastic.clients.elasticsearch._types.SortOrder.Desc)).build());
