@@ -26,6 +26,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Persistable;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.mapping.KeywordProperty;
+import co.elastic.clients.elasticsearch._types.mapping.Property;
 import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.BulkResponse;
 import co.elastic.clients.elasticsearch.core.DeleteByQueryRequest;
@@ -47,6 +49,7 @@ import co.elastic.clients.transport.endpoints.BooleanResponse;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -158,7 +161,7 @@ public class ESIndexer implements Indexer {
     BulkRequest.Builder br = new BulkRequest.Builder();
 
     for (Indexable indexable: indexables) {
-      
+
       br.operations(op -> op.index(idx -> idx.index(indexName).id(indexable.getId()).document(toJsonData(indexable))));
     }
 
@@ -257,14 +260,57 @@ public class ESIndexer implements Indexer {
       GetMappingResponse result = getClient().indices().getMapping(GetMappingRequest.of(r -> r.index(indexName)));
       Map<String, IndexMappingRecord> mappings = result.result();
       IndexMappingRecord record = mappings.get(indexName);
-      String recordAsString = Configuration.defaultConfiguration().jsonProvider().toJson(record.mappings().meta());
-      return JsonPath.using(Configuration.defaultConfiguration().addOptions(Option.ALWAYS_RETURN_LIST)).parse(recordAsString);
 
+      Map<String, Property> mappingProperties = record.mappings().properties();
+
+      String recordAsString = Configuration.defaultConfiguration().jsonProvider().toJson(processMappingProperties(mappingProperties));
+      return JsonPath.using(Configuration.defaultConfiguration().addOptions(Option.ALWAYS_RETURN_LIST)).parse(recordAsString);
     } catch (IOException e) {
       log.error("Failed to drop index index {} - {}", indexName, e);
     }
 
     return null;
+  }
+
+  private Map<String, Object> processMappingProperties(Map<String, Property> mappingProperties) {
+    Map<String, Object> result = new HashMap<>();
+
+    mappingProperties.forEach((key, property) -> {
+      if (property._kind() == Property.Kind.Object) {
+        Map<String, Object> anythingObjectRelated = new HashMap<>();
+        anythingObjectRelated.put("properties", processMappingProperties(property.object().properties()));
+
+        result.put(key, anythingObjectRelated);
+      } else if (property._kind() == Property.Kind.Keyword) {
+        KeywordProperty keywordProperty = property.keyword();
+
+        Map<String, Object> anythingKeywordRelated = new HashMap<>();
+        anythingKeywordRelated.put("type", property._kind().jsonValue());
+
+        Map<String, Property> keywordFields = keywordProperty.fields();
+        if (keywordFields != null && keywordFields.size() > 0) {
+          Map<String, Object> anythingKeywordFieldsRelated = new HashMap<>();
+
+          keywordFields.forEach((fieldKey, fieldProperty) -> {
+            Map<String, Object> anythingKeywordFieldRelated = new HashMap<>();
+            anythingKeywordFieldRelated.put("type", fieldProperty._kind().jsonValue());
+
+            anythingKeywordFieldsRelated.put(fieldKey, anythingKeywordFieldRelated);
+          });
+
+          anythingKeywordRelated.put("fields", anythingKeywordFieldsRelated);
+        }
+
+        result.put(key, anythingKeywordRelated);
+      } else {
+        Map<String, Object> anythingElse = new HashMap<>();
+        anythingElse.put("type", property._kind().jsonValue());
+
+        result.put(key, anythingElse);
+      }
+    });
+
+    return result;
   }
 
   private ElasticsearchClient getClient() {
