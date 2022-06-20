@@ -490,7 +490,7 @@ public class ESSearcher implements Searcher {
     log.debug("Response /{}/{}", indexName, type);
 
     if (response == null || response.hits().total().value() == 0) return null;
-    return new ByteArrayInputStream(response.hits().hits().get(0).toString().getBytes());
+    return new ByteArrayInputStream(response.hits().hits().get(0).source().toString().getBytes());
   }
 
   @Override
@@ -514,7 +514,7 @@ public class ESSearcher implements Searcher {
     log.debug("Response /{}/{}", indexName, type);
 
     if (response == null || response.hits().total().value() == 0) return null;
-    return new ByteArrayInputStream(response.hits().hits().get(0).toString().getBytes());
+    return new ByteArrayInputStream(response.hits().hits().get(0).source().toString().getBytes());
   }
 
   @Override
