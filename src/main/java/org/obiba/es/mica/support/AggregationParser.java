@@ -104,32 +104,30 @@ public class AggregationParser {
             String rangeEntryValue = entry.getValue();
             String rangeEntryKey = entry.getKey();
 
+            RangeAggregation.Builder rangeAggregationBuilder = new RangeAggregation.Builder().field(rangeEntryValue);
+
             Stream.of(properties.getProperty(key + AggregationHelper.RANGES).split(",")).forEach(range -> {
               String[] values = range.split(":");
               if (values.length != 2) throw new IllegalArgumentException("Range From and To are not defined");
 
               if (!"*".equals(values[0]) || !"*".equals(values[1])) {
-                RangeAggregation rangeAggregation = null;
-
                 if ("*".equals(values[0])) {
-                  rangeAggregation = RangeAggregation.of(r -> r.field(rangeEntryValue).ranges(AggregationRange.of(a -> a.to(values[1]))));
+                  rangeAggregationBuilder.ranges(AggregationRange.of(a -> a.to(values[1])));
                 } else if ("*".equals(values[1])) {
-                  rangeAggregation = RangeAggregation.of(r -> r.field(rangeEntryValue).ranges(AggregationRange.of(a -> a.from(values[0]))));
+                  rangeAggregationBuilder.ranges(AggregationRange.of(a -> a.from(values[0])));
                 } else {
-                  rangeAggregation = RangeAggregation.of(r -> r.field(rangeEntryValue).ranges(AggregationRange.of(a -> a.from(values[0]).to(values[1]))));
-                }
-
-                if (subProperties != null && subProperties.containsKey(rangeEntryValue)) {
-                  RangeAggregation agg = rangeAggregation;
-
-                  Map<String, Aggregation> parsedSubAggregations = getAggregations(subProperties.get(rangeEntryValue), null);
-                  parsed.put(rangeEntryKey, Aggregation.of(a -> a.range(agg).aggregations(parsedSubAggregations)));
-                } else {
-                  parsed.put(rangeEntryKey, rangeAggregation._toAggregation());
+                  rangeAggregationBuilder.ranges(AggregationRange.of(a -> a.from(values[0]).to(values[1])));
                 }
               }
 
             });
+
+            if (subProperties != null && subProperties.containsKey(rangeEntryValue)) {
+              Map<String, Aggregation> parsedSubAggregations = getAggregations(subProperties.get(rangeEntryValue), null);
+              parsed.put(rangeEntryKey, Aggregation.of(a -> a.range(rangeAggregationBuilder.build()).aggregations(parsedSubAggregations)));
+            } else {
+              parsed.put(rangeEntryKey, rangeAggregationBuilder.build()._toAggregation());
+            }
 
             break;
 
