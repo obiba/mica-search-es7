@@ -127,7 +127,7 @@ public class ESSearcher implements Searcher {
     List<String> sourceFields = getSourceFields(query, mandatorySourceFields);
 
     log.debug("Request /{}/{}", indexName, type);
-    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, theQuery.toString());
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, theQuery._get().toString());
 
     TrackHits trackHits = new TrackHits.Builder().enabled(true).build();
     Aggregation globalAggregation = GlobalAggregation.of(g -> g)._toAggregation();
@@ -175,7 +175,7 @@ public class ESSearcher implements Searcher {
     co.elastic.clients.elasticsearch._types.query_dsl.Query theQuery = filter == null ? queryBuilder : BoolQuery.of(q -> q.must(queryBuilder, filter))._toQuery();
 
     log.debug("Request /{}/{}", indexName, type);
-    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, theQuery.toString());
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, theQuery._get().toString());
     SearchResponse<ObjectNode> response = null;
 
     try {
@@ -220,7 +220,7 @@ public class ESSearcher implements Searcher {
     co.elastic.clients.elasticsearch._types.query_dsl.Query theQuery = filter == null ? queryBuilder : BoolQuery.of(q -> q.must(queryBuilder, filter))._toQuery();
 
     log.debug("Request /{}/{}", indexName, type);
-    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, theQuery.toString());
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, theQuery._get().toString());
     SearchResponse<ObjectNode> response = null;
 
     try {
@@ -264,7 +264,7 @@ public class ESSearcher implements Searcher {
     co.elastic.clients.elasticsearch._types.query_dsl.Query theQuery = filter == null ? queryBuilder : BoolQuery.of(q -> q.must(queryBuilder, filter))._toQuery();
 
     log.debug("Request /{}/{}", indexName, type);
-    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, theQuery.toString());
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, theQuery._get().toString());
     SearchResponse<ObjectNode> response = null;
     try {
       TrackHits trackHits = new TrackHits.Builder().enabled(true).build();
@@ -308,7 +308,7 @@ public class ESSearcher implements Searcher {
     co.elastic.clients.elasticsearch._types.query_dsl.Query theQuery = filter == null ? queryBuilder : BoolQuery.of(q -> q.must(queryBuilder, filter))._toQuery();
 
     log.debug("Request /{}/{}", indexName, type);
-    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, theQuery.toString());
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, theQuery._get().toString());
     SearchResponse<ObjectNode> response = null;
     try {
       co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = theQuery;
@@ -351,7 +351,7 @@ public class ESSearcher implements Searcher {
     co.elastic.clients.elasticsearch._types.query_dsl.Query countQueryBuilder = filter == null ? queryBuilder : BoolQuery.of(q -> q.must(queryBuilder, filter))._toQuery();
 
     log.debug("Request /{}/{}", indexName, type);
-    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, countQueryBuilder.toString());
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, countQueryBuilder._get().toString());
     CountResponse response = null;
     try {
       response = getClient().count(r -> r.index(indexName).query(countQueryBuilder));
@@ -380,7 +380,7 @@ public class ESSearcher implements Searcher {
     co.elastic.clients.elasticsearch._types.query_dsl.Query theQuery = filter == null ? queryBuilder : BoolQuery.of(q -> q.must(queryBuilder, filter))._toQuery();
 
     log.debug("Request /{}/{}", indexName, type);
-    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, theQuery.toString());
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, theQuery._get().toString());
     SearchResponse<ObjectNode> response = null;
     try {
       co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = theQuery;
@@ -413,7 +413,7 @@ public class ESSearcher implements Searcher {
     co.elastic.clients.elasticsearch._types.query_dsl.Query query = QueryStringQuery.of(q -> q.query(queryString).defaultField(localizedFieldName).defaultOperator(Operator.Or))._toQuery();
 
     log.debug("Request /{}/{}", indexName, type);
-    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, query.toString());
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, query._get().toString());
     List<String> names = Lists.newArrayList();
 
     try {
@@ -453,7 +453,7 @@ public class ESSearcher implements Searcher {
     co.elastic.clients.elasticsearch._types.query_dsl.Query query = IdsQuery.of(iq -> iq.values(id))._toQuery();
 
     log.debug("Request: /{}/{}", indexName, type);
-    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, query.toString());
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, query._get().toString());
     SearchResponse<ObjectNode> response = null;
     try {
       co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = query;
@@ -474,10 +474,10 @@ public class ESSearcher implements Searcher {
   public InputStream getDocumentByClassName(String indexName, String type, Class clazz, String id) {
     co.elastic.clients.elasticsearch._types.query_dsl.Query classNameQuery = QueryStringQuery.of(q -> q.query(clazz.getSimpleName()).fields("className"))._toQuery();
 
-    co.elastic.clients.elasticsearch._types.query_dsl.Query query = BoolQuery.of(q -> q.must(classNameQuery, IdsQuery.of(iq -> iq.values(id))._toQuery()))._toQuery(); 
+    co.elastic.clients.elasticsearch._types.query_dsl.Query query = BoolQuery.of(q -> q.must(classNameQuery, IdsQuery.of(iq -> iq.values(id))._toQuery()))._toQuery();
 
     log.debug("Request /{}/{}", indexName, type);
-    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, query.toString());
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, query._get().toString());
     SearchResponse<ObjectNode> response = null;
     try {
       co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = query;
@@ -499,7 +499,7 @@ public class ESSearcher implements Searcher {
                                                  String sort, String order, String queryString,
                                                  TermFilter termFilter, IdFilter idFilter) {
 
-    co.elastic.clients.elasticsearch._types.query_dsl.Query classNameQuery = QueryStringQuery.of(q -> q.query(clazz.getSimpleName()).fields("className"))._toQuery();   
+    co.elastic.clients.elasticsearch._types.query_dsl.Query classNameQuery = QueryStringQuery.of(q -> q.query(clazz.getSimpleName()).fields("className"))._toQuery();
 
     BoolQuery.Builder boolQuery = new BoolQuery.Builder().must(classNameQuery);
 
@@ -512,7 +512,7 @@ public class ESSearcher implements Searcher {
     co.elastic.clients.elasticsearch._types.query_dsl.Query execQuery = postFilter == null ? boolQuery.build()._toQuery() : boolQuery.must(postFilter).build()._toQuery();
 
     log.debug("Request /{}/{}", indexName, type);
-    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, execQuery.toString());
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, execQuery._get().toString());
     SearchResponse<ObjectNode> response = null;
     try {
       co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = execQuery;
@@ -554,7 +554,7 @@ public class ESSearcher implements Searcher {
     }
 
     log.debug("Request /{}/{}", indexName, type);
-    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, execQuery.toString());
+    if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, execQuery._get().toString());
     SearchResponse<ObjectNode> response = null;
     try {
       String capitalizedOrder = order.substring(0, 1).toUpperCase() + order.substring(1).toLowerCase();
@@ -585,7 +585,7 @@ public class ESSearcher implements Searcher {
 
     try {
       log.debug("Request /{}/{}: {}", indexName, type, theQuery);
-      if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, theQuery.toString());
+      if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, theQuery._get().toString());
 
       co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = theQuery;
 
