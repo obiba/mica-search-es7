@@ -613,7 +613,7 @@ public class ESSearcher implements Searcher {
       co.elastic.clients.elasticsearch._types.query_dsl.Query esQuery = theQuery;
 
       String cleanedField = field.replaceAll("\\.", "-");
-      TermsAggregation termsAggregation = TermsAggregation.of(agg -> agg.field(cleanedField).size(Short.toUnsignedInt(Short.MAX_VALUE)));
+      TermsAggregation termsAggregation = TermsAggregation.of(agg -> agg.field(field).size(Short.toUnsignedInt(Short.MAX_VALUE)));
 
       SearchResponse<ObjectNode> response = getClient().search(s -> s.index(indexName)
         .query(esQuery)
