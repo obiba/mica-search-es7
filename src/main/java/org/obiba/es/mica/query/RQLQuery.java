@@ -631,9 +631,28 @@ public class RQLQuery implements ESQuery {
       String stringQuery;
       if (argument instanceof Collection) {
         Collection<Object> terms = (Collection<Object>) argument;
-        stringQuery = Joiner.on(joiner).join(terms);
+
+        long countOfUnclosedDoubleQuotes = terms.stream().map(t -> t.toString()).filter(t -> (t.startsWith("\"") && !t.endsWith("\"")) || (!t.startsWith("\"") && t.endsWith("\""))).count();
+
+        stringQuery = terms.stream().map(t -> t.toString()).map(t -> {
+          String res = t;
+          if(t.startsWith("\"") && !t.endsWith("\"")) {
+            res = t + "\"";
+          } else if (!t.startsWith("\"") && t.endsWith("\"")) {
+            res = "\"" + t; 
+          }
+
+          return res;
+        }).collect(Collectors.joining(countOfUnclosedDoubleQuotes > 0 ? "AND" : joiner));
       } else {
-        stringQuery = argument.toString();
+        String res = argument.toString();
+        if(res.startsWith("\"") && !res.endsWith("\"")) {
+          res = res + "\"";
+        } else if (!res.startsWith("\"") && res.endsWith("\"")) {
+          res = "\"" + res; 
+        }
+
+        stringQuery = res;
       }
       return stringQuery;
     }
