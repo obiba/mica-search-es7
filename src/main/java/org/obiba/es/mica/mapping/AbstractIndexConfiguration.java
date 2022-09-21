@@ -10,8 +10,14 @@
 
 package org.obiba.es.mica.mapping;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
+import java.util.stream.Stream;
+
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.xcontent.XContentBuilder;
 import org.obiba.es.mica.ESSearchEngineService;
@@ -24,16 +30,10 @@ import org.obiba.opal.core.domain.taxonomy.Vocabulary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import sun.util.locale.LanguageTag;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.stream.Stream;
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
 
 public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigurationListener {
   private static final Logger log = LoggerFactory.getLogger(AbstractIndexConfiguration.class);
@@ -43,6 +43,8 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
   private static final String TYPE = "type";
   private static final String STATIC = "static";
   private static final String FIELD = "field";
+
+  private static final String LANGUAGE_TAG_UNDETERMINED = "und";
 
   private final ConfigurationProvider configurationProvider;
 
@@ -92,7 +94,7 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
       mapping.startObject(name);
       mapping.startObject("properties");
       Stream.concat(configurationProvider.getLocales().stream(), Stream.of(
-          LanguageTag.UNDETERMINED)).forEach(locale -> {
+        LANGUAGE_TAG_UNDETERMINED)).forEach(locale -> {
         try {
           mapping.startObject(locale);
           createMappingWithAnalyzers(mapping, locale);
