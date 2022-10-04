@@ -19,6 +19,8 @@ import org.elasticsearch.search.sort.SortBuilder;
 import org.obiba.es.mica.ESQuery;
 import org.obiba.mica.spi.search.support.Query;
 
+import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -56,10 +58,11 @@ public class AndQuery implements ESQuery {
   }
 
   @Override
-  public QueryBuilder getQueryBuilder() {
-    BoolQueryBuilder builder = QueryBuilders.boolQuery();
+  public co.elastic.clients.elasticsearch._types.query_dsl.Query getQueryBuilder() {
+
+    BoolQuery.Builder builder = new BoolQuery.Builder();
     queries.stream().filter(ESQuery::hasQueryBuilder).forEach(q -> builder.must(q.getQueryBuilder()));
-    return builder;
+    return builder.build()._toQuery();
   }
 
   @Override

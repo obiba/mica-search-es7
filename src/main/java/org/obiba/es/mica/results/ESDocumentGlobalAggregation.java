@@ -10,22 +10,23 @@
 
 package org.obiba.es.mica.results;
 
-import org.elasticsearch.search.aggregations.Aggregation;
-import org.elasticsearch.search.aggregations.bucket.global.Global;
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
+import co.elastic.clients.elasticsearch._types.aggregations.GlobalAggregate;
+
 import org.obiba.mica.spi.search.Searcher;
 
 /**
- * {@link Global} aggregation wrapper.
+ * {@link GlobalAggregate} aggregation wrapper.
  */
 public class ESDocumentGlobalAggregation implements Searcher.DocumentGlobalAggregation {
-  private final Global global;
+  private final GlobalAggregate global;
 
-  public ESDocumentGlobalAggregation(Aggregation global) {
-    this.global = (Global) global;
+  public ESDocumentGlobalAggregation(Aggregate global) {
+    this.global = global.global();
   }
 
   @Override
   public long getDocCount() {
-    return global.getDocCount();
+    return global.docCount();
   }
 }

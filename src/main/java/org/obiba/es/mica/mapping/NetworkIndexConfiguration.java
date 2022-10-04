@@ -12,9 +12,9 @@ package org.obiba.es.mica.mapping;
 
 import com.google.common.collect.Lists;
 import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.indices.PutMappingRequest;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.xcontent.XContentBuilder;
+import org.elasticsearch.xcontent.XContentFactory;
 import org.obiba.mica.spi.search.ConfigurationProvider;
 import org.obiba.mica.spi.search.Indexer;
 import org.obiba.mica.spi.search.SearchEngineService;
@@ -23,7 +23,10 @@ import org.obiba.opal.core.domain.taxonomy.Taxonomy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import co.elastic.clients.elasticsearch.indices.PutMappingRequest;
+
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.List;
 
 public class NetworkIndexConfiguration extends AbstractIndexConfiguration {
@@ -37,11 +40,12 @@ public class NetworkIndexConfiguration extends AbstractIndexConfiguration {
   public void onIndexCreated(SearchEngineService searchEngineService, String indexName) {
     if (Indexer.DRAFT_NETWORK_INDEX.equals(indexName) ||
         Indexer.PUBLISHED_NETWORK_INDEX.equals(indexName)) {
-
       try {
+        XContentBuilder properties = createMappingProperties();
+
         getClient(searchEngineService)
           .indices()
-          .putMapping(new PutMappingRequest(indexName).source(createMappingProperties()), RequestOptions.DEFAULT);
+          .putMapping(PutMappingRequest.of(r -> r.index(indexName).withJson(new StringReader(Strings.toString(properties)))));
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
@@ -50,9 +54,6 @@ public class NetworkIndexConfiguration extends AbstractIndexConfiguration {
 
   private XContentBuilder createMappingProperties() throws IOException {
     XContentBuilder mapping = XContentFactory.jsonBuilder().startObject();
-    startDynamicTemplate(mapping);
-    dynamicTemplateExcludeFieldFromSearch(mapping, "parent_id", "*Memberships.parentId");
-    endDynamicTemplate(mapping);
 
     mapping.startObject("properties");
     Taxonomy taxonomy = getTaxonomy();

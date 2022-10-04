@@ -11,16 +11,19 @@
 package org.obiba.es.mica.mapping;
 
 import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.indices.PutMappingRequest;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.xcontent.XContentBuilder;
+import org.elasticsearch.xcontent.XContentFactory;
 import org.obiba.mica.spi.search.ConfigurationProvider;
 import org.obiba.mica.spi.search.Indexer;
 import org.obiba.mica.spi.search.SearchEngineService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import co.elastic.clients.elasticsearch.indices.PutMappingRequest;
+
 import java.io.IOException;
+import java.io.StringReader;
 
 public class FileIndexConfiguration extends AbstractIndexConfiguration {
   private static final Logger log = LoggerFactory.getLogger(FileIndexConfiguration.class);
@@ -37,10 +40,12 @@ public class FileIndexConfiguration extends AbstractIndexConfiguration {
         String attachmentField = Indexer.ATTACHMENT_DRAFT_INDEX.equals(indexName)
             ? "attachment"
             : "publishedAttachment";
+
+        XContentBuilder properties = createMappingProperties(Indexer.ATTACHMENT_TYPE, attachmentField);
+        
         getClient(searchEngineService)
           .indices()
-          .putMapping(new PutMappingRequest(indexName)
-            .source(createMappingProperties(Indexer.ATTACHMENT_TYPE, attachmentField)), RequestOptions.DEFAULT);
+          .putMapping(PutMappingRequest.of(r -> r.index(indexName).withJson(new StringReader(Strings.toString(properties)))));
       } catch (IOException e) {
         throw new RuntimeException(e);
       }

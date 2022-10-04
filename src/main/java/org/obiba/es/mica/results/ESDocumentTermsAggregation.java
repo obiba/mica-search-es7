@@ -10,7 +10,9 @@
 
 package org.obiba.es.mica.results;
 
-import org.elasticsearch.search.aggregations.Aggregation;
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
+import co.elastic.clients.elasticsearch._types.aggregations.StringTermsAggregate;
+
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.obiba.mica.spi.search.Searcher;
 
@@ -21,14 +23,15 @@ import java.util.stream.Collectors;
  * {@link Terms} aggregation wrapper.
  */
 public class ESDocumentTermsAggregation implements Searcher.DocumentTermsAggregation {
-  private final Terms terms;
+  private final StringTermsAggregate terms;
 
-  public ESDocumentTermsAggregation(Aggregation terms) {
-    this.terms = (Terms) terms;
+  public ESDocumentTermsAggregation(Aggregate terms) {
+    this.terms = terms.sterms();
   }
 
   @Override
   public List<Searcher.DocumentTermsBucket> getBuckets() {
-    return terms.getBuckets().stream().map(ESDocumentTermsBucket::new).collect(Collectors.toList());
+    
+    return terms.buckets().array().stream().map(ESDocumentTermsBucket::new).collect(Collectors.toList());
   }
 }

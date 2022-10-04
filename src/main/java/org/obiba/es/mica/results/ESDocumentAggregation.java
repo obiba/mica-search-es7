@@ -10,28 +10,29 @@
 
 package org.obiba.es.mica.results;
 
-import org.elasticsearch.search.aggregations.Aggregation;
-import org.elasticsearch.search.aggregations.InternalAggregation;
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
 import org.obiba.mica.spi.search.Searcher;
 
 /**
- * {@link Aggregation} wrapper.
+ * {@link Aggregate} wrapper.
  */
 public class ESDocumentAggregation implements Searcher.DocumentAggregation {
-  private final Aggregation aggregation;
+  private final Aggregate aggregation;
+  private final String name;
 
-  public ESDocumentAggregation(Aggregation aggregation) {
+  public ESDocumentAggregation(String name, Aggregate aggregation) {
     this.aggregation = aggregation;
+    this.name = name;
   }
 
   @Override
   public String getName() {
-    return aggregation.getName();
+    return name;
   }
 
   @Override
   public String getType() {
-    return aggregation.getType();
+    return aggregation._kind().jsonValue();
   }
 
   @Override

@@ -10,17 +10,19 @@
 
 package org.obiba.es.mica;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import net.minidev.json.JSONObject;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.node.Node;
+import org.elasticsearch.xcontent.XContentType;
 import org.obiba.es.mica.mapping.DatasetIndexConfiguration;
 import org.obiba.es.mica.mapping.FileIndexConfiguration;
 import org.obiba.es.mica.mapping.NetworkIndexConfiguration;
@@ -36,12 +38,16 @@ import org.obiba.mica.spi.search.Searcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.json.jackson.JacksonJsonpMapper;
+import co.elastic.clients.transport.rest_client.RestClientTransport;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.StringJoiner;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
@@ -49,7 +55,7 @@ import static java.util.stream.Collectors.toList;
 public class ESSearchEngineService implements SearchEngineService {
   private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-  private static final String ES_BRANCH = "7.5.x";
+  private static final String ES_BRANCH = "7.17.x";
 
   private static final String ES_CONFIG_FILE = "elasticsearch.yml";
 
@@ -59,7 +65,7 @@ public class ESSearchEngineService implements SearchEngineService {
 
   private Node esNode;
 
-  private RestHighLevelClient client;
+  private ElasticsearchClient client;
 
   private ESIndexer esIndexer;
 
@@ -68,6 +74,10 @@ public class ESSearchEngineService implements SearchEngineService {
   private ConfigurationProvider configurationProvider;
 
   private Set<Indexer.IndexConfigurationListener> indexConfigurationListeners;
+
+  private String indexSettings = "{}";
+
+  private ObjectMapper yamlObjectMapper = new ObjectMapper(new YAMLFactory());
 
   @Override
   public String getName() {
@@ -116,11 +126,7 @@ public class ESSearchEngineService implements SearchEngineService {
       }
     }
     if (client != null) {
-      try {
-        client.close();
-      } catch (IOException e) {
-        log.error("Failed to close client {}", e);
-      }
+      client.shutdown();
     }
     esNode = null;
     client = null;
@@ -141,7 +147,7 @@ public class ESSearchEngineService implements SearchEngineService {
     return esSearcher;
   }
 
-  public RestHighLevelClient getClient() {
+  public ElasticsearchClient getClient() {
     return client;
   }
 
@@ -206,7 +212,12 @@ public class ESSearchEngineService implements SearchEngineService {
       })
       .toArray(HttpHost[]::new);
 
-    client = new RestHighLevelClient(RestClient.builder(httpHosts));
+      RestClient restClient = RestClient.builder(httpHosts).build();
+
+      JacksonJsonpMapper jacksonJsonpMapper = new JacksonJsonpMapper();
+      RestClientTransport transport = new RestClientTransport(restClient, jacksonJsonpMapper);
+
+    client = new ElasticsearchClient(transport);
   }
 
   private boolean isDataNode() {
@@ -248,8 +259,8 @@ public class ESSearchEngineService implements SearchEngineService {
     return dataDir;
   }
 
-  Settings getIndexSettings() {
-    return getSettings().build().getByPrefix("index.");
+  String getIndexSettings() {
+    return indexSettings;
   }
 
   private Settings.Builder getSettings() {
@@ -263,6 +274,17 @@ public class ESSearchEngineService implements SearchEngineService {
     if (defaultSettings.exists()) {
       try {
         builder.loadFromPath(defaultSettings.toPath());
+        
+        Map<String, Object> defaultSettingsMap = yamlObjectMapper.readValue(defaultSettings, new TypeReference<Map<String, Object>>() {});
+
+        if (defaultSettingsMap.containsKey("index")) {
+          Object defaultSettingsIndexObject = defaultSettingsMap.get("index");
+
+          if (defaultSettingsIndexObject instanceof Map) {
+            indexSettings = new JSONObject((Map) defaultSettingsIndexObject).toJSONString();
+          }          
+        }
+
       } catch (IOException e) {
         log.error("Failed to load default settings {}", e);
       }

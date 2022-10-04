@@ -10,11 +10,16 @@
 
 package org.obiba.es.mica.mapping;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import org.elasticsearch.client.RestHighLevelClient;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
+import java.util.stream.Stream;
+
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.xcontent.XContentBuilder;
 import org.obiba.es.mica.ESSearchEngineService;
 import org.obiba.mica.spi.search.ConfigurationProvider;
 import org.obiba.mica.spi.search.Indexer;
@@ -24,15 +29,11 @@ import org.obiba.opal.core.domain.taxonomy.Taxonomy;
 import org.obiba.opal.core.domain.taxonomy.Vocabulary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.util.locale.LanguageTag;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.stream.Stream;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
 
 public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigurationListener {
   private static final Logger log = LoggerFactory.getLogger(AbstractIndexConfiguration.class);
@@ -43,13 +44,15 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
   private static final String STATIC = "static";
   private static final String FIELD = "field";
 
+  private static final String LANGUAGE_TAG_UNDETERMINED = "und";
+
   private final ConfigurationProvider configurationProvider;
 
   AbstractIndexConfiguration(ConfigurationProvider configurationProvider) {
     this.configurationProvider = configurationProvider;
   }
 
-  protected RestHighLevelClient getClient(SearchEngineService searchEngineService) {
+  protected ElasticsearchClient getClient(SearchEngineService searchEngineService) {
     return ((ESSearchEngineService) searchEngineService).getClient();
   }
 
@@ -91,7 +94,7 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
       mapping.startObject(name);
       mapping.startObject("properties");
       Stream.concat(configurationProvider.getLocales().stream(), Stream.of(
-          LanguageTag.UNDETERMINED)).forEach(locale -> {
+        LANGUAGE_TAG_UNDETERMINED)).forEach(locale -> {
         try {
           mapping.startObject(locale);
           createMappingWithAnalyzers(mapping, locale);
@@ -170,7 +173,6 @@ public abstract class AbstractIndexConfiguration implements Indexer.IndexConfigu
                                                        String pattern) throws IOException {
     mapping.startObject(name)
       .field("path_match", pattern)
-      .startObject("mapping").field("include_in_all", false).endObject()
       .endObject();
   }
 

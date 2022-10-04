@@ -10,25 +10,26 @@
 
 package org.obiba.es.mica.results;
 
-import org.elasticsearch.search.aggregations.Aggregation;
-import org.elasticsearch.search.aggregations.bucket.range.Range;
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
+import co.elastic.clients.elasticsearch._types.aggregations.RangeAggregate;
+
 import org.obiba.mica.spi.search.Searcher;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * {@link Range} aggregation wrapper.
+ * {@link RangeAggregate} aggregation wrapper.
  */
 public class ESDocumentRangeAggregation implements Searcher.DocumentRangeAggregation {
-  private final Range range;
+  private final RangeAggregate range;
 
-  public ESDocumentRangeAggregation(Aggregation range) {
-    this.range = (Range) range;
+  public ESDocumentRangeAggregation(Aggregate range) {
+    this.range = range.range();
   }
 
   @Override
   public List<Searcher.DocumentRangeBucket> getBuckets() {
-    return range.getBuckets().stream().map(ESDocumentRangeBucket::new).collect(Collectors.toList());
+    return range.buckets().array().stream().map(ESDocumentRangeBucket::new).collect(Collectors.toList());
   }
 }

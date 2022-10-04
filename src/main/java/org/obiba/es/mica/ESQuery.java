@@ -10,7 +10,6 @@
 
 package org.obiba.es.mica;
 
-import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.sort.SortBuilder;
 import org.obiba.mica.spi.search.support.Query;
 
@@ -20,7 +19,7 @@ public interface ESQuery extends Query {
 
   boolean hasLimit();
 
-  QueryBuilder getQueryBuilder();
+  co.elastic.clients.elasticsearch._types.query_dsl.Query getQueryBuilder();
 
   boolean hasSortBuilders();
 

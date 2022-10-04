@@ -523,23 +523,23 @@ public class RQLQueryTest {
     assertThat(rqlQuery.getSourceFields().size()).isEqualTo(1);
     assertThat(rqlQuery.getSourceFields().get(0)).isEqualTo("name.*");
     assertThat(rqlQuery.hasQueryBuilder()).isTrue();
-    String expected = "{\n" +
-            "  \"query\" : {\n" +
-            "    \"exists\" : {\n" +
-            "      \"field\" : \"id\"\n" +
-            "    }\n" + "  },\n" +
-            "  \"_source\" : {\n" +
-            "    \"includes\" : [ \"name.*\" ],\n" +
-            "    \"excludes\" : [ ]\n" +
-            "  }\n"
-            + "}";
+    // String expected = "{\n" +
+    //         "  \"query\" : {\n" +
+    //         "    \"exists\" : {\n" +
+    //         "      \"field\" : \"id\"\n" +
+    //         "    }\n" + "  },\n" +
+    //         "  \"_source\" : {\n" +
+    //         "    \"includes\" : [ \"name.*\" ],\n" +
+    //         "    \"excludes\" : [ ]\n" +
+    //         "  }\n"
+    //         + "}";
 
-    TestElasticSearchClient client = new TestElasticSearchClient();
-    client.init();
-    SearchRequestBuilder searchRequestBuilder = client.preSearchRequest(rqlQuery.getQueryBuilder());
-    searchRequestBuilder.setFetchSource(rqlQuery.getSourceFields().toArray(new String[0]), null);
-    assertThat(searchRequestBuilder.toString()).isEqualTo(expected);
-    client.cleanup();
+    // TestElasticSearchClient client = new TestElasticSearchClient();
+    // client.init();
+    // SearchRequestBuilder searchRequestBuilder = client.preSearchRequest(rqlQuery.getQueryBuilder());
+    // searchRequestBuilder.setFetchSource(rqlQuery.getSourceFields().toArray(new String[0]), null);
+    // assertThat(searchRequestBuilder.toString()).isEqualTo(expected);
+    // client.cleanup();
   }
 
 }

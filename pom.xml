@@ -22,12 +22,12 @@
 
     <assertj-core.version>1.7.1</assertj-core.version>
     <easymock.version>3.4</easymock.version>
-    <elasticsearch.version>7.9.2</elasticsearch.version>
+    <elasticsearch.version>7.17.6</elasticsearch.version>
     <jna.version>4.1.0</jna.version>
     <junit.version>4.12</junit.version>
     <logback.version>1.2.0</logback.version>
-    <mica.version>4.6-SNAPSHOT</mica.version>
-    <obiba-commons.version>1.15.2</obiba-commons.version>
+    <mica.version>5.1-SNAPSHOT</mica.version>
+    <obiba-commons.version>2.1.1</obiba-commons.version>
     <rql-parser.version>0.3.3-obiba</rql-parser.version>
     <slf4j.version>1.7.21</slf4j.version>
 
@@ -71,6 +71,12 @@
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
+      <version>${elasticsearch.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>co.elastic.clients</groupId>
+      <artifactId>elasticsearch-java</artifactId>
       <version>${elasticsearch.version}</version>
     </dependency>
 
