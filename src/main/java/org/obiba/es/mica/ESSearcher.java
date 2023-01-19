@@ -565,10 +565,12 @@ public class ESSearcher implements Searcher {
     if (log.isTraceEnabled()) log.trace("Request /{}/{}: {}", indexName, type, execQuery._get().toString());
     SearchResponse<ObjectNode> response = null;
     try {
-      String capitalizedOrder = order.substring(0, 1).toUpperCase() + order.substring(1).toLowerCase();
+      co.elastic.clients.elasticsearch._types.SortOrder sortOrder = Strings.isNullOrEmpty(order) ?
+        co.elastic.clients.elasticsearch._types.SortOrder.Asc :
+        co.elastic.clients.elasticsearch._types.SortOrder.valueOf(order.substring(0, 1).toUpperCase() + order.substring(1).toLowerCase());
 
       SortOptions sortOption = sort != null ?
-        new SortOptions.Builder().field(FieldSort.of(s -> s.field(sort).order(order == null ? co.elastic.clients.elasticsearch._types.SortOrder.Asc : co.elastic.clients.elasticsearch._types.SortOrder.valueOf(capitalizedOrder)))).build() :
+        new SortOptions.Builder().field(FieldSort.of(s -> s.field(sort).order(sortOrder))).build() :
         new SortOptions.Builder().score(score -> score.order(co.elastic.clients.elasticsearch._types.SortOrder.Desc)).build();
 
       co.elastic.clients.elasticsearch._types.query_dsl.Query finalQuery = execQuery;
