@@ -631,7 +631,15 @@ public class ESSearcher implements Searcher {
 
     if (termFilter != null && termFilter.getValue() != null) {
       TermQuery filterBy = TermQuery.of(q -> q.field(termFilter.getField()).value(termFilter.getValue()));
-      filter = filter != null ? filterBy._toQuery() : null;
+
+      if (filter == null) {
+        filter = filterBy._toQuery();
+      } else {
+        List<co.elastic.clients.elasticsearch._types.query_dsl.Query> mustQueries = new ArrayList<>();
+        mustQueries.add(filter);
+        mustQueries.add(filterBy._toQuery());
+        filter = BoolQuery.of(q -> q.must(mustQueries))._toQuery();
+      }
     }
 
     return filter;
