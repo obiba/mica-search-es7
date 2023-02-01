@@ -74,8 +74,7 @@ public class VariableIndexConfiguration extends AbstractIndexConfiguration {
     createMappingWithoutAnalyzer(mapping, "datasetId");
     if (Indexer.HARMONIZED_VARIABLE_TYPE.equals(type)) {
       createMappingWithoutAnalyzer(mapping, "opalTableType");
-      createMappingWithoutAnalyzer(mapping, "project");
-      createMappingWithoutAnalyzer(mapping, "table");
+      createMappingWithoutAnalyzer(mapping, "source");
     }
     createMappingWithAndWithoutAnalyzer(mapping, "name");
     createMappingWithoutAnalyzer(mapping, "entityType");
