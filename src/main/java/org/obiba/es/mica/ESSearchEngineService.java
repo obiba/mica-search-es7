@@ -81,7 +81,7 @@ public class ESSearchEngineService implements SearchEngineService {
 
   @Override
   public String getName() {
-    return "mica-search-es";
+    return "mica-search-es7";
   }
 
   @Override
