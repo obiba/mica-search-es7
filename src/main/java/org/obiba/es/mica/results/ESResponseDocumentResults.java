@@ -50,12 +50,12 @@ public class ESResponseDocumentResults implements Searcher.DocumentResults {
 
   @Override
   public Map<String, Long> getAggregation(String field) {
-    
+
     Aggregate aggregation = response.aggregations().get(field);
     Aggregate.Kind aggregationKind = aggregation._kind();
 
     if (aggregationKind.name() != "sterms") return new HashMap<>();
-    return aggregation.sterms().buckets().array().stream().collect(Collectors.toMap(StringTermsBucket::key, StringTermsBucket::docCount));
+    return aggregation.sterms().buckets().array().stream().collect(Collectors.toMap(b -> b.key().stringValue(), StringTermsBucket::docCount));
   }
 
   @Override
