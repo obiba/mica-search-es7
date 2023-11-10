@@ -628,24 +628,23 @@ public class ESSearcher implements Searcher {
     Aggregation aggregation = Aggregation.of(a -> a.terms(firstLevelTermsAggregation).aggregations("status", TermsAggregation.of(agg -> agg.field(statusFieldName))._toAggregation()));
 
     String cleanedField = aggregationFieldName.replaceAll("\\.", "-");
-    SearchResponse<ObjectNode> response = null;
     try {
       if (log.isTraceEnabled()) log.trace("Request /{}: {}/{}", datasetId, queryPart._get().toString(), aggregation._get().toString());
 
-
-      response = getClient().search(s -> s.index("hvariable-published")
+      SearchResponse<ObjectNode> response = getClient().search(s -> s.index("hvariable-published")
           .query(queryPart)
           .from(0)
           .size(0)
           .aggregations(cleanedField, aggregation),
         ObjectNode.class);
+
+      return response.aggregations().get(aggregationFieldName).sterms().buckets().array().stream().collect(Collectors.toMap(
+        b -> b.key(),
+        b -> b.aggregations().get("status").sterms().buckets().array().stream().collect(Collectors.toMap(sb -> sb.key(), sb -> sb.docCount()))));
     } catch (IndexNotFoundException | IOException e) {
       log.error("Failed to get harmonization aggregation for {} - {}", datasetId, e);
+      return null;
     }
-
-    return response.aggregations().get(aggregationFieldName).sterms().buckets().array().stream().collect(Collectors.toMap(
-      b -> b.key(),
-      b -> b.aggregations().get("status").sterms().buckets().array().stream().collect(Collectors.toMap(sb -> sb.key(), sb -> sb.docCount()))));
   }
 
   //
