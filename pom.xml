@@ -20,14 +20,14 @@
     <maven.compiler.target>1.8</maven.compiler.target>
     <maven.compiler.source>1.8</maven.compiler.source>
 
-    <assertj-core.version>1.7.1</assertj-core.version>
+    <assertj-core.version>3.8.0</assertj-core.version>
     <easymock.version>3.4</easymock.version>
-    <elasticsearch.version>7.17.14</elasticsearch.version>
+    <elasticsearch.version>7.17.6</elasticsearch.version>
     <jna.version>4.1.0</jna.version>
     <junit.version>4.12</junit.version>
     <logback.version>1.2.9</logback.version>
-    <mica.version>5.1.0</mica.version>
-    <obiba-commons.version>2.1.1</obiba-commons.version>
+    <mica.version>5.3-SNAPSHOT</mica.version>
+    <obiba-commons.version>3.0.2</obiba-commons.version>
     <rql-parser.version>0.3.3-obiba</rql-parser.version>
     <slf4j.version>1.7.21</slf4j.version>
 

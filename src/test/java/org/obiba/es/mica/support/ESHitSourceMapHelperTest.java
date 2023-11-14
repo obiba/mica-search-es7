@@ -18,6 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import co.elastic.clients.json.JsonData;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertNotNull;
@@ -29,9 +30,8 @@ public class ESHitSourceMapHelperTest {
 
   @Test
   public void flattenMapSimple() {
-    Map<String, JsonData> map = Maps.newHashMap();
-    map.put(("A"), JsonData.of("bla"));
-    Map<String, String> flattened = Maps.newHashMap();
+    Map<String, JsonData> map = Maps.newHashMap("A", JsonData.of("bla"));
+    Map<String, String> flattened = new HashMap<>();
     ESHitSourceMapHelper.flattenMap(mapper, mapper.valueToTree(map), flattened);
     assertTrue(map.size() == flattened.size());
     assertTrue(map.get("A").toString().equals(flattened.get("A")));
@@ -39,14 +39,12 @@ public class ESHitSourceMapHelperTest {
 
   @Test
   public void flattenMapOneHierarchy() {
-    Map<String, JsonData> mapB = Maps.newHashMap();
-    mapB.put("B", JsonData.of("bla"));
+    Map<String, JsonData> mapB = Maps.newHashMap("B", JsonData.of("bla"));
 
-    Map<String, JsonData> mapA = Maps.newHashMap();
-    mapA.put("A", JsonData.of("blabla"));
+    Map<String, JsonData> mapA = Maps.newHashMap("A", JsonData.of("blabla"));
     mapA.put("A1", JsonData.of(mapB));
 
-    Map<String, String> flattened = Maps.newHashMap();
+    Map<String, String> flattened = new HashMap<>();
     ESHitSourceMapHelper.flattenMap(mapper, mapper.valueToTree(mapA), flattened);
     assertTrue(flattened.size() == 2);
     assertNotNull(flattened.get("A"));
@@ -57,21 +55,17 @@ public class ESHitSourceMapHelperTest {
 
   @Test
   public void flattenMapSeveralHierarchy() {
-    Map<String, Object> mapD = Maps.newHashMap();
-    mapD.put("D", "blabla");
+    Map<String, Object> mapD = Maps.newHashMap("D", "blabla");
 
-    Map<String, Object> mapC = Maps.newHashMap();
-    mapC.put("C", mapD);
+    Map<String, Object> mapC = Maps.newHashMap("C", mapD);
 
-    Map<String, Object> mapB = Maps.newHashMap();
-    mapB.put("B", mapC);
+    Map<String, Object> mapB = Maps.newHashMap("B", mapC);
 
-    Map<String, JsonData> mapA = Maps.newHashMap();
-    mapA.put("A", JsonData.of(mapB));
+    Map<String, JsonData> mapA = Maps.newHashMap("A", JsonData.of(mapB));
     mapA.put("A1", JsonData.of(mapC));
     mapA.put("A2", JsonData.of(mapD));
 
-    Map<String, String> flattened = Maps.newHashMap();
+    Map<String, String> flattened = new HashMap<>();
     ESHitSourceMapHelper.flattenMap(mapper, mapper.valueToTree(mapA), flattened);
     assertTrue(flattened.size() == 3);
     assertTrue(flattened.get("A.B.C.D").equals("blabla"));

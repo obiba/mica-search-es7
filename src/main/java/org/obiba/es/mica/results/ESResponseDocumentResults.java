@@ -55,7 +55,7 @@ public class ESResponseDocumentResults implements Searcher.DocumentResults {
     Aggregate.Kind aggregationKind = aggregation._kind();
 
     if (aggregationKind.name() != "sterms") return new HashMap<>();
-    return aggregation.sterms().buckets().array().stream().collect(Collectors.toMap(b -> b.key().stringValue(), StringTermsBucket::docCount));
+    return aggregation.sterms().buckets().array().stream().collect(Collectors.toMap(b -> b.key(), StringTermsBucket::docCount));
   }
 
   @Override

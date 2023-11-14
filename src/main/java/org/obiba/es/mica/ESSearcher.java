@@ -620,6 +620,33 @@ public class ESSearcher implements Searcher {
     }
   }
 
+  @Override
+  public Map<Object, Object> harmonizationStatusAggregation(String datasetId, int size, String aggregationFieldName, String statusFieldName) {
+    co.elastic.clients.elasticsearch._types.query_dsl.Query queryPart = BoolQuery.of(q -> q.must(TermQuery.of(tq -> tq.field("datasetId").value(datasetId))._toQuery()))._toQuery();
+
+    TermsAggregation firstLevelTermsAggregation = TermsAggregation.of(agg -> agg.field(aggregationFieldName).size(size));
+    Aggregation aggregation = Aggregation.of(a -> a.terms(firstLevelTermsAggregation).aggregations("status", TermsAggregation.of(agg -> agg.field(statusFieldName))._toAggregation()));
+
+    String cleanedField = aggregationFieldName.replaceAll("\\.", "-");
+    try {
+      if (log.isTraceEnabled()) log.trace("Request /{}: {}/{}", datasetId, queryPart._get().toString(), aggregation._get().toString());
+
+      SearchResponse<ObjectNode> response = getClient().search(s -> s.index("hvariable-published")
+          .query(queryPart)
+          .from(0)
+          .size(0)
+          .aggregations(cleanedField, aggregation),
+        ObjectNode.class);
+
+      return response.aggregations().get(aggregationFieldName).sterms().buckets().array().stream().collect(Collectors.toMap(
+        b -> b.key(),
+        b -> b.aggregations().get("status").sterms().buckets().array().stream().collect(Collectors.toMap(sb -> sb.key(), sb -> sb.docCount()))));
+    } catch (IndexNotFoundException | IOException e) {
+      log.error("Failed to get harmonization aggregation for {} - {}", datasetId, e);
+      return null;
+    }
+  }
+
   //
   // Private methods
   //
