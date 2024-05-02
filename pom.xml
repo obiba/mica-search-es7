@@ -17,18 +17,20 @@
   <url>http://obiba.org</url>
 
   <properties>
-    <maven.compiler.target>1.8</maven.compiler.target>
-    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.release>21</maven.compiler.release>
+    <maven.compiler.target>21</maven.compiler.target>
+    <maven.compiler.source>21</maven.compiler.source>
 
     <assertj-core.version>3.8.0</assertj-core.version>
-    <easymock.version>3.4</easymock.version>
+    <easymock.version>5.2.0</easymock.version>
     <elasticsearch.version>7.17.6</elasticsearch.version>
     <jna.version>4.1.0</jna.version>
     <junit.version>4.12</junit.version>
-    <logback.version>1.2.9</logback.version>
-    <mica.version>5.3.0</mica.version>
-    <obiba-commons.version>3.0.2</obiba-commons.version>
+    <logback.version>1.4.14</logback.version>
+    <mica.version>5.5-SNAPSHOT</mica.version>
+    <obiba-commons.version>4.1-SNAPSHOT</obiba-commons.version>
     <rql-parser.version>0.3.3-obiba</rql-parser.version>
+    <json-smart.version>2.4.10</json-smart.version>
     <slf4j.version>1.7.21</slf4j.version>
 
     <!-- maven plugins -->
@@ -96,6 +98,12 @@
       <groupId>net.jazdw</groupId>
       <artifactId>rql-parser</artifactId>
       <version>${rql-parser.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>net.minidev</groupId>
+      <artifactId>json-smart</artifactId>
+      <version>${json-smart.version}</version>
     </dependency>
 
     <dependency>
