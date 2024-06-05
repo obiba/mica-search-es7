@@ -13,11 +13,12 @@ package org.obiba.es.mica;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import net.minidev.json.JSONObject;
 import org.apache.http.HttpHost;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.Settings;

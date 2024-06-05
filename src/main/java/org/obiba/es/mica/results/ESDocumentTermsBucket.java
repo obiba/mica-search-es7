@@ -34,7 +34,7 @@ public class ESDocumentTermsBucket implements Searcher.DocumentTermsBucket {
 
   @Override
   public String getKeyAsString() {
-    return bucket.key();
+    return bucket.key().stringValue();
   }
 
   @Override
